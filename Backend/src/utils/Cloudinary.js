@@ -1,5 +1,5 @@
 import {v2 as cloudinary} from "cloudinary";
-import {fs} from "fs";
+import fs from "fs";
 
 
 cloudinary.config(
@@ -11,7 +11,7 @@ cloudinary.config(
 )
 
 
-const uploadOnCloudinary = async (localfilepath) {
+const uploadOnCloudinary = async (localfilepath) => {
     try{
         if(!localfilepath) throw new Error("File path is required");
 
@@ -35,3 +35,6 @@ const uploadOnCloudinary = async (localfilepath) {
 
     }
 }
+
+
+export {uploadOnCloudinary}
