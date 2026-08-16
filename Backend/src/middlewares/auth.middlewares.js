@@ -14,12 +14,12 @@ export const verifyJWT = asyncHandler(async (req, _, next) => {
         //Authorizatin: Bearer <token>
 
         //1. get the token from the request header or cookie
-        const token = req.cookies?.accessToken || req.headers("Authorization")?.replace("Bearer ", "");
+        const token = req.cookies?.accessToken || req.headers.authorization?.replace("Bearer ", "");
 
 
         //2. if token is not present then throw error
         if (!token) {
-            throw APIError(401, "Unauthorized access")
+            throw new APIError(401, "Unauthorized access")
         }
 
         //3. verify the token
@@ -37,7 +37,7 @@ export const verifyJWT = asyncHandler(async (req, _, next) => {
         }
 
         req.user = user;
-        next();
+        next()
 
 
 
