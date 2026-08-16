@@ -409,6 +409,9 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
 })
 
 
+
+//add a utility function when the images uploaded then delete the old images from cloudinary to save the space and cost of cloudinary storage. Because if the user change the image then the old image is not required so delete it from cloudinary. 
+
 const updateUserAvatar = asyncHandler(async (req, res) => {
 
     //get the req.files using multer middlewares
