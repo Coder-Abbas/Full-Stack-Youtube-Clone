@@ -334,7 +334,164 @@ const refreshToken = asyncHandler(async (req, res) => {
 })
 
 
+const changeCurrentPassword = asyncHandler(async (req, res) => {
 
+    //1. get the data from frontend
+    const { oldPassword, newPassword, confPassword } = req.body;
+
+    if (!(oldPassword === confPassword)) {
+        throw new APIError(401, "New password and confirm password do not match")
+    }
+
+    //2. find the user by id which came from middleware
+    const user = await User.findById(req.user._id);
+    const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
+
+    //3. if password is not correct then throw error
+    if (!isPasswordCorrect) {
+        throw new APIError(400, "Old password is incorrect")
+    }
+
+    //change/ set the password
+    user.password = newPassword;
+    await user.save({ validateBeforeSave: false });
+
+    //return response
+    return res.status(200)
+        .json(
+            new ApiResponse(200, {}, "Password changed successfully")
+        )
+})
+
+const getCurrentUser = asyncHandler(async (req, res) => {
+    //return from middleware which inject
+    return res.status(200)
+        .json(
+            new ApiResponse(200, req.user, "Current user fetched successfully")
+        )
+})
+
+const updateAccountDetails = asyncHandler(async (req, res) => {
+    //1. get the data from frontend
+    const { fullName, username, email } = req.body;
+
+    //if file change made another controller because to reduce the complexity of the controller and to make it more readable and maintainable
+
+    //2. validation
+    if (!(fullName || email)) {
+        throw new APIError(400, "Full name and email are required")
+    }
+
+
+    //3. find the user and update
+    const user = User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {
+                fullName,
+                username,
+                email
+            }
+
+        },
+        {
+            new: true, //it send the new data
+        }
+    ).select("-password -refreshToken")
+
+    //return user
+    return res.status(200)
+        .json(
+            new ApiResponse(200, user, "User details updated successfully")
+        )
+
+
+})
+
+
+const updateUserAvatar = asyncHandler(async (req, res) => {
+
+    //get the req.files using multer middlewares
+    const avatarLocalPath = req.file?.path;
+
+    //validation
+    if (!avatarLocalPath) {
+        throw new APIError(400, "Avatar image is missing")
+    };
+
+
+    //upload to cloudinary we have method
+    const avatar = await uploadOnCloudinary(avatarLocalPath);
+
+    //validaion
+    if (!avatar.url) {
+        throw new APIError(500, "Error while uploading on avatar image")
+    }
+
+    //update
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {
+                avatar: avatar.url
+            }
+        },
+        {
+            new: true, //it send the new data
+        }
+    ).select("-password -refreshToken")
+
+    //return response
+    return res.status(200)
+        .json(
+            new ApiResponse(200, user, "Avatar updated successfully")
+        )
+
+
+})
+
+
+
+const updateUserCoverImage = asyncHandler(async (req, res) => {
+
+    //get the req.files using multer middlewares
+    const coverImageLocalPath = req.file?.path;
+
+    //validation
+    if (!coverImageLocalPath) {
+        throw new APIError(400, "Cover image is missing")
+    };
+
+
+    //upload to cloudinary we have method
+    const coverImage = await uploadOnCloudinary(coverImageLocalPath);
+
+    //validaion
+    if (!coverImage.url) {
+        throw new APIError(500, "Error while uploading on cover image")
+    }
+
+    //update
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {
+                coverImage: coverImage.url
+            }
+        },
+        {
+            new: true, //it send the new data
+        }
+    ).select("-password -refreshToken")
+
+    //return response
+    return res.status(200)
+        .json(
+            new ApiResponse(200, user, "Cover image updated successfully")
+        )
+
+
+})
 
 
 
@@ -342,5 +499,10 @@ export {
     registerUser,
     loginUser,
     logoutUser,
-    refreshToken
+    refreshToken,
+    changeCurrentPassword,
+    updateAccountDetails,
+    updateUserAvatar,
+    updateUserCoverImage,
+    getCurrentUser
 }
