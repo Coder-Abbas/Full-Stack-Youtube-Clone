@@ -3,10 +3,26 @@ import { APIError } from "../utils/APIError.js";
 import { User } from "../models/users.models.js"
 import { uploadOnCloudinary } from "../utils/Cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
-
 import jwt from "jsonwebtoken";
 
-//request, response, next , error 
+//request, response, next , error
+
+const deletepicold = async (imageUrl) => {
+
+    try {
+        // Extract the public ID from the image URL
+        const publicId = imageUrl.split('/').pop().split('.')[0];
+
+        console.log("Public ID:", publicId);
+        // Delete the image from Cloudinary
+        await cloudinary.uploader.destroy(publicId);
+    } catch (error) {
+        console.error("Error deleting old image from Cloudinary:", error);
+    }
+}
+
+
+
 
 const generateAccessAndRefreshTokens = async (userId) => {
 
@@ -412,6 +428,8 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
 
 //add a utility function when the images uploaded then delete the old images from cloudinary to save the space and cost of cloudinary storage. Because if the user change the image then the old image is not required so delete it from cloudinary. 
 
+
+
 const updateUserAvatar = asyncHandler(async (req, res) => {
 
     //get the req.files using multer middlewares
@@ -443,6 +461,12 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
             new: true, //it send the new data
         }
     ).select("-password -refreshToken")
+
+
+    // Delete the old avatar image from Cloudinary
+    if (avatar) {
+        await deletepicold(user.avatar);
+    }
 
     //return response
     return res.status(200)
@@ -487,6 +511,11 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
         }
     ).select("-password -refreshToken")
 
+    // Delete the old cover image from Cloudinary
+    if (coverImage) {
+        await deletepicold(user.coverImage);
+    }
+
     //return response
     return res.status(200)
         .json(
@@ -528,7 +557,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
                     foreignField: "subscriber",
                     as: "subscribedTo"
                 }
-            }, 
+            },
             {
                 $addFields: {
                     subscribersCount: {
@@ -541,8 +570,8 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
             },
             {
                 isSubscribed: {
-                    $cond:{
-                        if: { $in: [req.user?._id, "$subscribers.subscriber"]},
+                    $cond: {
+                        if: { $in: [req.user?._id, "$subscribers.subscriber"] },
                         then: true,
                         else: false
                     }
@@ -566,17 +595,81 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
 
     //Do console log just to check. 
 
-    if(!channel?.length){
+    if (!channel?.length) {
         throw new APIError(404, "Channel does not exist")
     }
 
     //return the channel
     return res.status(200)
-    .json(
-        new ApiResponse(200, channel[0], "Channel fetched successfully")
-    )
+        .json(
+            new ApiResponse(200, channel[0], "Channel fetched successfully")
+        )
 
 })
+
+
+const getWatchHistory = asyncHandler(async (req, res) => {
+    //actualy mongodb id hame nahi milty. hame string milty hai. aur mongoose automatically convert it to object id. so we can use it directly in the query.
+
+
+    //aggregation ka code directly jata hai mongoose nahi karta mtlb id
+    //1. get user used pipelines and add in fields. 
+    const user = await User.aggregate(
+        [
+            {
+                $match: {
+                    _id: new mongoose.Types.ObjectId(req.user?._id)
+                }
+            },
+
+            {
+                $lookup: {
+                    from: "Videos",
+                    localField: "watchHistory",
+                    foreignField: "_id",
+                    as: "watchHistory",
+                    pipeline: [
+                        {
+                            $lookup: {
+                                from: "Users",
+                                localField: "owner",
+                                foreignField: "_id",
+                                as: "owner",
+                                pipeline: [
+                                    {
+                                        $project: {
+                                            fullName: 1,
+                                            username: 1,
+                                            avatar: 1,
+
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            $addFields: {
+                                // owner: { $arrayElemAt: ["$owner", 0]}
+                                $filed: "$owner",
+                            }
+                        }
+                    ]
+
+                }
+            },
+        ]
+    )
+
+    //return the response
+    return res.status(200)
+        .json(
+            new ApiResponse(200, user[0]?.watchHistory || [], "Watch history fetched successfully")
+        )
+
+
+
+})
+
 
 
 export {
@@ -589,5 +682,6 @@ export {
     updateUserAvatar,
     updateUserCoverImage,
     getCurrentUser,
-    getUserChannelProfile
+    getUserChannelProfile,
+    getWatchHistory
 }
