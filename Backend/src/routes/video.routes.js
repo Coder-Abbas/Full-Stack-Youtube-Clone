@@ -7,7 +7,8 @@ import {
     getAllPublishedVideos,
     getSelectedVideo,
     deleteVideo,
-    updateVideo
+    updateVideo,
+    getViews
 } from "../controllers/videos.controllers.js";
 
 
@@ -71,6 +72,12 @@ router.route("/:videoId").patch(
     ),
     updateVideo
 )
+
+
+router.route("/:videoId/view").patch(
+    getViews
+)
+
 
 
 export default router;

@@ -8,33 +8,44 @@ import { Video } from "../models/videos.models.js";
 import cloudinary from "../utils/Cloudinary.js";
 
 const deletepicold = async (imageUrl) => {
-
     try {
-        const publicId = imageUrl.split('/').pop().split('.')[0];
+        const publicId = imageUrl
+            .split("/")
+            .pop()
+            .split(".")[0];
 
-        console.log("Public ID:", publicId);
-        // Delete the image from Cloudinary
+        console.log("Image Public ID:", publicId);
+
         await cloudinary.uploader.destroy(publicId);
-    } catch (error) {
-        console.error("Error deleting old image from Cloudinary:", error);
-    }
-}
 
+    } catch (error) {
+        console.error(
+            "Error deleting old image from Cloudinary:",
+            error
+        );
+    }
+};
 
 const deleteOldVideo = async (videoUrl) => {
-
     try {
-        // Extract the public ID from the video URL
-        const publicId = videoUrl.split('/').pop().split('.')[0];
+        const publicId = videoUrl
+            .split("/")
+            .pop()
+            .split(".")[0];
 
-        console.log("Public ID:", publicId);
-        // Delete the video from Cloudinary
-        await cloudinary.uploader.destroy(publicId);
+        console.log("Video Public ID:", publicId);
+
+        await cloudinary.uploader.destroy(publicId, {
+            resource_type: "video"
+        });
+
     } catch (error) {
-        console.error("Error deleting old video from Cloudinary:", error);
+        console.error(
+            "Error deleting old video from Cloudinary:",
+            error
+        );
     }
-}
-
+};
 
 
 const uploadvideo = asyncHandler(async (req, res) => {
@@ -220,9 +231,13 @@ const deleteVideo = asyncHandler(async (req, res) => {
     }
 
     //4. delete the video from database
+    const oldVideo = video.videoFile;
+    const oldThumbnail = video.thumbnail;
+
     await video.deleteOne();
-    await deleteOldVideo(video.videoFile);
-    await deletepicold(video.thumbnail);
+
+    await deleteOldVideo(oldVideo);
+    await deletepicold(oldThumbnail);
 
 
     //5. return response
@@ -316,11 +331,43 @@ const updateVideo = asyncHandler(async (req, res) => {
 
 })
 
+
+const getViews = asyncHandler(async (req, res) => {
+    //1. get the video id from params
+    const { videoId } = req.params;
+
+    //2. validate ID
+    if (!videoId) {
+        throw new APIError(400, "Video ID is required")
+    }
+
+    //3. find the video
+
+    const video = await Video.findById(videoId);
+
+    //4. validatin + isPublished
+    if (!video || !video.isPublished) {
+        throw new APIError(404, "Video not found or not published")
+    }
+
+    //5 increement the views
+    video.views += 1;
+
+    //6. save the video
+    await video.save();
+
+    //7. return video
+    return res.status(200)
+    .json(
+        new ApiResponse(200, video, "Video views updated successfully")
+    )
+})
 export {
     uploadvideo,
     isPublished,
     getAllPublishedVideos,
     getSelectedVideo,
     deleteVideo,
-    updateVideo
+    updateVideo,
+    getViews
 }
