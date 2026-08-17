@@ -10,9 +10,11 @@ import cloudinary from "../utils/Cloudinary.js";
 const deletepicold = async (imageUrl) => {
 
     try {
-        await cloudinary.uploader.destroy(
-            video.thumbnailPublicId
-        );
+        const publicId = imageUrl.split('/').pop().split('.')[0];
+
+        console.log("Public ID:", publicId);
+        // Delete the image from Cloudinary
+        await cloudinary.uploader.destroy(publicId);
     } catch (error) {
         console.error("Error deleting old image from Cloudinary:", error);
     }
@@ -22,14 +24,14 @@ const deletepicold = async (imageUrl) => {
 const deleteOldVideo = async (videoUrl) => {
 
     try {
-        // Extract the public ID from the image URL
+        // Extract the public ID from the video URL
         const publicId = videoUrl.split('/').pop().split('.')[0];
 
         console.log("Public ID:", publicId);
-        // Delete the image from Cloudinary
+        // Delete the video from Cloudinary
         await cloudinary.uploader.destroy(publicId);
     } catch (error) {
-        console.error("Error deleting old image from Cloudinary:", error);
+        console.error("Error deleting old video from Cloudinary:", error);
     }
 }
 
