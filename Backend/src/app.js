@@ -25,13 +25,15 @@ app.use(express.static("public"));
 
 //import routes  .js add in all files if i is js
 import userRoutes from "./routes/user.routes.js";
+import videoRoutes from "./routes/video.routes.js";
 
 
 
 
 //routes declaration
 app.use("/api/v1/users", userRoutes);
-// http://localhost:3000/api/v1/users/register
+
+app.use("/api/v1/videos", videoRoutes);
 
 
 export { app };

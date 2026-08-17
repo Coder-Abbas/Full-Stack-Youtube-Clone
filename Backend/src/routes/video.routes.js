@@ -55,7 +55,7 @@ router.route("/:videoId").delete(
 )
 
 
-router.route("/:videoId").patch(
+router.route("/update/:videoId").patch(
     verifyJWT,
     upload.fields(
         [

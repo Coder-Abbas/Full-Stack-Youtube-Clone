@@ -1,11 +1,11 @@
-import { asyncHandler } from "express-async-handler";
+import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { APIError } from "../utils/APIError.js";
 import { User } from "../models/users.models.js"
 import { uploadOnCloudinary } from "../utils/Cloudinary.js"
 import { verifyJWT } from "../middlewares/auth.middlewares.js";
-import { Video } from "../models/videos.models.js";
-import cloudinary from "../utils/Cloudinary.js";
+import { Video } from "../models/video.models.js";
+import cloudinary from "cloudinary";
 
 const deletepicold = async (imageUrl) => {
     try {
