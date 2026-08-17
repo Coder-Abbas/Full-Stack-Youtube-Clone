@@ -248,8 +248,8 @@ const logoutUser = asyncHandler(async (req, res) => {
     User.findByIdAndUpdate(
         req.user._id,
         {
-            $set: {
-                refreshToken: undefined
+            $unset: {
+                refreshToken: 1
             }
 
         },
@@ -355,7 +355,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
     //1. get the data from frontend
     const { oldPassword, newPassword, confPassword } = req.body;
 
-    if (!(oldPassword === confPassword)) {
+    if (!(newPassword === confPassword)) {
         throw new APIError(401, "New password and confirm password do not match")
     }
 
@@ -544,7 +544,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
             },
             {
                 $lookup: {
-                    from: "Subscriptions",
+                    from: "subscriptions",
                     localField: "_id",
                     foreignField: "channel",
                     as: "subscribers"
@@ -552,7 +552,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
             },
             {
                 $lookup: {
-                    from: "Subscriptions",
+                    from: "subscriptions",
                     localField: "_id",
                     foreignField: "subscriber",
                     as: "subscribedTo"
@@ -569,11 +569,12 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
                 }
             },
             {
-                isSubscribed: {
-                    $cond: {
-                        if: { $in: [req.user?._id, "$subscribers.subscriber"] },
-                        then: true,
-                        else: false
+                $addFields: {
+                    isSubscribed: {
+                        $in: [
+                            req.user._id,
+                            "$subscribers.subscriber"
+                        ]
                     }
                 }
             },
@@ -618,10 +619,9 @@ const getWatchHistory = asyncHandler(async (req, res) => {
         [
             {
                 $match: {
-                    _id: new mongoose.Types.ObjectId(req.user?._id)
+                    _id: req.user?._id
                 }
             },
-
             {
                 $lookup: {
                     from: "Videos",
@@ -650,7 +650,9 @@ const getWatchHistory = asyncHandler(async (req, res) => {
                         {
                             $addFields: {
                                 // owner: { $arrayElemAt: ["$owner", 0]}
-                                $filed: "$owner",
+                                owner: {
+                                    $arrayElemAt: ["$owner", 0]
+                                }
                             }
                         }
                     ]

@@ -74,14 +74,13 @@ const userSchema = new Schema(
 )
 
 
-userSchema.pre("save", async function (next) {
+userSchema.pre("save", async function () {
     if(!this.isModified("password")) {
     
-        return next(); //if password is not modified then move to next middleware
+        return; //if password is not modified then move to next middleware
     }
 
     this.password = await bcrypt.hash(this.password, 10); //hashing the password before saving it to the database
-    next();
 });
 
 userSchema.methods.isPasswordCorrect = async function(password){
