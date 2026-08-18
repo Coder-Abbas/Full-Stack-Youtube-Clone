@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import {
     ThumbsUp,
@@ -11,6 +12,14 @@ import {
     X,
     Copy,
     Check,
+    Play,
+    Pause,
+    Volume2,
+    VolumeX,
+    SkipBack,
+    SkipForward,
+    Maximize,
+    Minimize,
 } from "lucide-react";
 
 import useVideoStore from "../store/videoStore";
@@ -236,6 +245,16 @@ const SelectVideo = () => {
     const [isShareOpen, setIsShareOpen] = useState(false);
     const [isCopied, setIsCopied] = useState(false);
 
+    // Video player state
+    const videoRef = useRef(null);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [isMuted, setIsMuted] = useState(false);
+    const [volume, setVolume] = useState(1);
+    const [progress, setProgress] = useState(0);
+    const [currentTime, setCurrentTime] = useState(0);
+    const [duration, setDuration] = useState(0);
+    const [isFullScreen, setIsFullScreen] = useState(false);
+
 
     // ==========================================
     // Fetch selected video
@@ -436,19 +455,221 @@ const SelectVideo = () => {
 
                             {/* ================= VIDEO ================= */}
 
-                            <div className="w-full aspect-video bg-black rounded-xl overflow-hidden">
+                            <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden group">
 
                                 <video
+                                    ref={videoRef}
                                     src={selectedVideo.videoFile}
                                     poster={selectedVideo.thumbnail}
-                                    controls
                                     className="
                                     w-full
                                     h-full
                                     object-contain
                                 "
+                                    onPlay={() => setIsPlaying(true)}
+                                    onPause={() => setIsPlaying(false)}
+                                    onVolumeChange={(e) => {
+                                        const vid = e.target;
+                                        setIsMuted(vid.muted);
+                                        setVolume(vid.volume);
+                                    }}
+                                    onTimeUpdate={(e) => {
+                                        const vid = e.target;
+                                        setCurrentTime(vid.currentTime);
+                                        setProgress(
+                                            (vid.currentTime / vid.duration) * 100
+                                        );
+                                    }}
+                                    onLoadedMetadata={(e) => {
+                                        setDuration(e.target.duration);
+                                    }}
+                                    onSeeking={() => {
+                                        setProgress(
+                                            (videoRef.current.currentTime /
+                                                videoRef.current.duration) *
+                                                100
+                                        );
+                                    }}
                                 />
 
+                                {/* Custom Video Controls */}
+                                <div
+                                    className={`
+                                        absolute
+                                        bottom-0
+                                        left-0
+                                        right-0
+                                        bg-gradient-to-t
+                                        from-black/80
+                                        to-transparent
+                                        p-4
+                                        flex
+                                        items-center
+                                        gap-3
+                                        text-white
+                                        transition-opacity
+                                        duration-300
+                                        ${isPlaying ? "opacity-100" : "opacity-0 group-hover:opacity-100"}
+                                    `}
+                                >
+                                    {/* Play / Pause */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            if (videoRef.current) {
+                                                if (isPlaying) {
+                                                    videoRef.current.pause();
+                                                } else {
+                                                    videoRef.current.play();
+                                                }
+                                            }
+                                        }}
+                                        className="hover:text-gray-300 transition"
+                                    >
+                                        {isPlaying ? (
+                                            <Pause size={22} />
+                                        ) : (
+                                            <Play size={22} />
+                                        )}
+                                    </button>
+
+                                    {/* Skip Backward 10s */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            if (videoRef.current) {
+                                                videoRef.current.currentTime = Math.max(
+                                                    0,
+                                                    videoRef.current.currentTime - 10
+                                                );
+                                            }
+                                        }}
+                                        className="hover:text-gray-300 transition"
+                                        title="Skip back 10 seconds"
+                                    >
+                                        <SkipBack size={20} />
+                                        <span className="text-xs ml-1">10</span>
+                                    </button>
+
+                                    {/* Skip Forward 10s */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            if (videoRef.current) {
+                                                videoRef.current.currentTime = Math.min(
+                                                    videoRef.current.duration,
+                                                    videoRef.current.currentTime + 10
+                                                );
+                                            }
+                                        }}
+                                        className="hover:text-gray-300 transition"
+                                        title="Skip forward 10 seconds"
+                                    >
+                                        <SkipForward size={20} />
+                                        <span className="text-xs ml-1">10</span>
+                                    </button>
+
+                                    {/* Progress Bar */}
+                                    <div
+                                        className="
+                                            flex-1
+                                            h-1
+                                            bg-gray-600
+                                            rounded-full
+                                            cursor-pointer
+                                            relative
+                                        "
+                                        onClick={(e) => {
+                                            const rect = e.currentTarget.getBoundingClientRect();
+                                            const percent =
+                                                (e.clientX - rect.left) / rect.width;
+                                            if (videoRef.current) {
+                                                videoRef.current.currentTime =
+                                                    percent * videoRef.current.duration;
+                                            }
+                                        }}
+                                    >
+                                        <div
+                                            className="h-full bg-red-500 rounded-full"
+                                            style={{ width: `${progress}%` }}
+                                        />
+                                    </div>
+
+                                    {/* Time */}
+                                    <span className="text-xs text-gray-300 min-w-[90px]">
+                                        {Math.floor(currentTime / 60)}:
+                                        {Math.floor(currentTime % 60)
+                                            .toString()
+                                            .padStart(2, "0")}
+                                        {" / "}
+                                        {Math.floor(duration / 60)}:
+                                        {Math.floor(duration % 60)
+                                            .toString()
+                                            .padStart(2, "0")}
+                                    </span>
+
+                                    {/* Volume */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            if (videoRef.current) {
+                                                videoRef.current.muted = !isMuted;
+                                                setIsMuted(!isMuted);
+                                            }
+                                        }}
+                                        className="hover:text-gray-300 transition"
+                                        title={isMuted ? "Unmute" : "Mute"}
+                                    >
+                                        {isMuted ? (
+                                            <VolumeX size={20} />
+                                        ) : (
+                                            <Volume2 size={20} />
+                                        )}
+                                    </button>
+
+                                    {/* Volume Slider */}
+                                    <div className="w-16 h-1 bg-gray-600 rounded-full cursor-pointer">
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max="1"
+                                            step="0.1"
+                                            value={volume}
+                                            onChange={(e) => {
+                                                const vol = parseFloat(e.target.value);
+                                                setVolume(vol);
+                                                if (videoRef.current) {
+                                                    videoRef.current.volume = vol;
+                                                    videoRef.current.muted = vol === 0;
+                                                    setIsMuted(vol === 0);
+                                                }
+                                            }}
+                                            className="w-full h-full opacity-0 cursor-pointer"
+                                        />
+                                        <div
+                                            className="h-full bg-red-500 rounded-full"
+                                            style={{ width: `${volume * 100}%` }}
+                                        />
+                                    </div>
+
+                                    {/* Fullscreen */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            if (videoRef.current) {
+                                                if (document.fullscreenElement) {
+                                                    document.exitFullscreen();
+                                                } else {
+                                                    videoRef.current.parentElement.requestFullscreen();
+                                                }
+                                            }
+                                        }}
+                                        className="hover:text-gray-300 transition"
+                                        title="Fullscreen"
+                                    >
+                                        <Maximize size={20} />
+                                    </button>
+                                </div>
                             </div>
 
 
@@ -480,39 +701,54 @@ const SelectVideo = () => {
                             "
                             >
 
-                                {/* Owner Information */}
-
+                                {/* Owner Information - click to open channel */}
                                 <div className="flex items-center gap-3">
 
-                                    <img
-                                        src={
-                                            selectedVideo.owner.avatar
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            navigate(`/channel/${selectedVideo.owner.username}`)
                                         }
-                                        alt={
-                                            selectedVideo.owner.username
-                                        }
-                                        className="
-                                        w-11
-                                        h-11
-                                        rounded-full
-                                        object-cover
-                                    "
-                                    />
+                                        className="flex-shrink-0"
+                                    >
+                                        <img
+                                            src={
+                                                selectedVideo.owner.avatar
+                                            }
+                                            alt={
+                                                selectedVideo.owner.username
+                                            }
+                                            className="
+                                            w-11
+                                            h-11
+                                            rounded-full
+                                            object-cover
+                                            hover:opacity-80
+                                            transition
+                                        "
+                                        />
+                                    </button>
 
 
                                     <div>
 
-                                        <h2
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                navigate(`/channel/${selectedVideo.owner.username}`)
+                                            }
                                             className="
                                             font-semibold
                                             text-gray-900
+                                            hover:text-gray-600
+                                            transition
                                         "
                                         >
                                             {
                                                 selectedVideo.owner
                                                     .fullName
                                             }
-                                        </h2>
+                                        </button>
 
 
                                         <p

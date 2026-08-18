@@ -203,7 +203,13 @@ const getLikeVideos = asyncHandler(async (req, res) => {
     const likedVideos = await Like.find(
         {
             likedBy: userId,
-        }).populate("video")
+        }).populate({
+            path: "video",
+            populate: {
+                path: "owner",
+                select: "username avatar fullName"
+            }
+        })
         .sort({ createdAt: -1 })
 
 

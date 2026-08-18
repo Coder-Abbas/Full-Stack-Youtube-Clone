@@ -1,13 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Menu, Search, User, LogOut, UserCircle } from "lucide-react";
+import { Menu, Search, User, LogOut, UserCircle, Upload } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import useAuthStore from "../../store/authStore";
+import UploadVideoModal from "../UploadVideoModal";
 
 const Navbar = ({ toggleSidebar = () => { } }) => {
     const navigate = useNavigate();
     const menuRef = useRef(null);
     const { authUser, getMe, logout } = useAuthStore();
     const [menuOpen, setMenuOpen] = useState(false);
+    const [isUploadOpen, setIsUploadOpen] = useState(false);
 
     useEffect(() => {
         getMe();
@@ -70,7 +72,18 @@ const Navbar = ({ toggleSidebar = () => { } }) => {
 
                 <div className="flex items-center gap-3">
                     {authUser ? (
-                        <div className="relative" ref={menuRef}>
+                        <>
+                            {/* Upload Video Button */}
+                            <button
+                                type="button"
+                                onClick={() => setIsUploadOpen(true)}
+                                className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 transition cursor-pointer"
+                            >
+                                <Upload size={18} />
+                                <span className="hidden sm:inline">Upload</span>
+                            </button>
+
+                            <div className="relative" ref={menuRef}>
                             <button
                                 type="button"
                                 onClick={() => setMenuOpen((prev) => !prev)}
@@ -112,7 +125,8 @@ const Navbar = ({ toggleSidebar = () => { } }) => {
                                     </button>
                                 </div>
                             )}
-                        </div>
+                            </div>
+                        </>
                     ) : (
                         <button
                             type="button"
@@ -140,6 +154,11 @@ const Navbar = ({ toggleSidebar = () => { } }) => {
                     </button>
                 </div>
             </div>
+
+            {/* Upload Video Modal */}
+            {isUploadOpen && (
+                <UploadVideoModal onClose={() => setIsUploadOpen(false)} />
+            )}
         </nav>
     );
 };

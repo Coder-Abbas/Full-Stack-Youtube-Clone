@@ -107,6 +107,74 @@ const useVideoStore = create((set) => ({
 
 
     // ==========================================
+    // Liked Videos
+    // ==========================================
+
+    likedVideos: [],
+
+    isLikedVideosLoading: false,
+
+    likedVideosError: null,
+
+
+    // ==========================================
+    // Get Liked Videos
+    // GET /likes/liked-videos
+    // ==========================================
+
+    getLikedVideos: async () => {
+
+        try {
+
+            set({
+                isLikedVideosLoading: true,
+                likedVideosError: null,
+            });
+
+            const response = await axiosInstance.get(
+                "/likes/liked-videos"
+            );
+
+            // Backend returns array of { video: {...} } objects
+            const rawLiked = response.data.data || [];
+
+            // Extract the video from each like object and convert URLs
+            const likedVideos = rawLiked.map((item) => {
+                const video = item.video || item;
+                return {
+                    ...video,
+                    thumbnail: toHttps(video.thumbnail),
+                    videoFile: toHttps(video.videoFile),
+                    owner: {
+                        ...video.owner,
+                        avatar: toHttps(video.owner?.avatar),
+                    },
+                };
+            });
+
+            set({
+                likedVideos,
+                isLikedVideosLoading: false,
+            });
+
+        } catch (error) {
+
+            console.error(
+                "Error fetching liked videos:",
+                error
+            );
+
+            set({
+                likedVideosError:
+                    error.response?.data?.message ||
+                    "Failed to fetch liked videos",
+                isLikedVideosLoading: false,
+            });
+        }
+    },
+
+
+    // ==========================================
     // Open Selected Video
     // ==========================================
 
@@ -238,6 +306,220 @@ const useVideoStore = create((set) => ({
                 isSelectedVideoLoading: false,
 
             });
+        }
+    },
+
+
+    // ==========================================
+    // Toggle Video Like
+    // POST /likes/:videoId/like
+    // ==========================================
+
+    toggleVideoLike: async () => {
+
+        try {
+
+            const state = useVideoStore.getState();
+            const videoId = state.selectedVideoId;
+
+            if (!videoId) return;
+
+            const response = await axiosInstance.post(
+                `/likes/${videoId}/like`
+            );
+
+            const liked = response.data.data.like;
+
+            set((prev) => ({
+                isLiked: liked,
+                selectedVideo: prev.selectedVideo
+                    ? {
+                          ...prev.selectedVideo,
+                          likesCount: liked
+                              ? prev.selectedVideo.likesCount + 1
+                              : Math.max(0, prev.selectedVideo.likesCount - 1),
+                      }
+                    : prev.selectedVideo,
+            }));
+
+        } catch (error) {
+
+            console.error(
+                "Error toggling video like:",
+                error
+            );
+        }
+    },
+
+
+    // ==========================================
+    // Add Comment
+    // POST /comments/:videoId/Addcomment
+    // ==========================================
+
+    addComment: async (content) => {
+
+        try {
+
+            const state = useVideoStore.getState();
+            const videoId = state.selectedVideoId;
+
+            if (!videoId || !content.trim()) return false;
+
+            const response = await axiosInstance.post(
+                `/comments/${videoId}/Addcomment`,
+                { content }
+            );
+
+            const newComment = response.data.data;
+
+            // Convert avatar to https
+            const comment = {
+                ...newComment,
+                owner: {
+                    ...newComment.owner,
+                    avatar: toHttps(newComment.owner?.avatar),
+                },
+            };
+
+            set((prev) => ({
+                comments: [comment, ...prev.comments],
+            }));
+
+            return true;
+
+        } catch (error) {
+
+            console.error(
+                "Error adding comment:",
+                error
+            );
+
+            return false;
+        }
+    },
+
+
+    // ==========================================
+    // Update Comment
+    // PATCH /comments/:commentId/updatecomment
+    // ==========================================
+
+    updateComment: async (commentId, content) => {
+
+        try {
+
+            if (!commentId || !content.trim()) return false;
+
+            const response = await axiosInstance.patch(
+                `/comments/${commentId}/updatecomment`,
+                { content }
+            );
+
+            const updatedComment = response.data.data;
+
+            set((prev) => ({
+                comments: prev.comments.map((c) =>
+                    c._id === commentId
+                        ? {
+                              ...updatedComment,
+                              owner: {
+                                  ...updatedComment.owner,
+                                  avatar: toHttps(
+                                      updatedComment.owner?.avatar
+                                  ),
+                              },
+                          }
+                        : c
+                ),
+            }));
+
+            return true;
+
+        } catch (error) {
+
+            console.error(
+                "Error updating comment:",
+                error
+            );
+
+            return false;
+        }
+    },
+
+
+    // ==========================================
+    // Delete Comment
+    // DELETE /comments/:commentId/deletecomment
+    // ==========================================
+
+    deleteComment: async (commentId) => {
+
+        try {
+
+            if (!commentId) return false;
+
+            await axiosInstance.delete(
+                `/comments/${commentId}/deletecomment`
+            );
+
+            set((prev) => ({
+                comments: prev.comments.filter(
+                    (c) => c._id !== commentId
+                ),
+            }));
+
+            return true;
+
+        } catch (error) {
+
+            console.error(
+                "Error deleting comment:",
+                error
+            );
+
+            return false;
+        }
+    },
+
+
+    // ==========================================
+    // Toggle Comment Like
+    // POST /likes/:commentId/Commentlike
+    // ==========================================
+
+    toggleCommentLike: async (commentId) => {
+
+        try {
+
+            if (!commentId) return;
+
+            const response = await axiosInstance.post(
+                `/likes/${commentId}/Commentlike`
+            );
+
+            const liked = response.data.data.like;
+
+            set((prev) => ({
+                comments: prev.comments.map((c) =>
+                    c._id === commentId
+                        ? {
+                              ...c,
+                              isLiked: liked,
+                              commentLikesCount: liked
+                                  ? (c.commentLikesCount || 0) + 1
+                                  : Math.max(0, (c.commentLikesCount || 0) - 1),
+                          }
+                        : c
+                ),
+            }));
+
+        } catch (error) {
+
+            console.error(
+                "Error toggling comment like:",
+                error
+            );
         }
     },
 

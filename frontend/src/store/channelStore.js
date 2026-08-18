@@ -81,7 +81,7 @@ const useChannelStore = create((set, get) => ({
             const rawUser = response.data.data;
 
             // Convert avatar to https
-            const channel =
+            const channelBase =
                 rawUser && typeof rawUser === "object"
                     ? {
                           ...rawUser,
@@ -89,6 +89,33 @@ const useChannelStore = create((set, get) => ({
                           coverImage: toHttps(rawUser.coverImage),
                       }
                     : rawUser;
+
+            // Fetch channel profile to get subscribersCount and isSubscribed
+            let channel = channelBase;
+            try {
+                if (channelBase?.username) {
+                    const channelResponse = await axiosInstance.get(
+                        `/users/c/${channelBase.username}`
+                    );
+                    const channelData = channelResponse.data.data;
+
+                    // Merge channel stats into the channel object
+                    if (channelData && typeof channelData === "object") {
+                        channel = {
+                            ...channelBase,
+                            ...channelData,
+                            avatar: toHttps(channelData.avatar || channelBase.avatar),
+                            coverImage: toHttps(channelData.coverImage || channelBase.coverImage),
+                            subscribersCount: channelData.subscribersCount || 0,
+                            subscribedToCount: channelData.subscribedToCount || 0,
+                            isSubscribed: channelData.isSubscribed || false,
+                        };
+                    }
+                }
+            } catch (channelErr) {
+                console.error("Fetch channel stats error:", channelErr);
+                // If channel profile fetch fails, keep the base user data
+            }
 
             set({
                 channel,
@@ -128,9 +155,25 @@ const useChannelStore = create((set, get) => ({
             );
 
             const data = response.data.data;
+            const rawVideos = data?.videos || data || [];
+
+            // Convert http:// to https:// for video thumbnails and video files
+            const videos = (Array.isArray(rawVideos) ? rawVideos : []).map(
+                (video) => ({
+                    ...video,
+                    thumbnail: toHttps(video.thumbnail),
+                    videoFile: toHttps(video.videoFile),
+                    // Give fallback owner data if not populated from backend
+                    owner: video.owner || {
+                        avatar: "",
+                        fullName: "Unknown",
+                        username: "unknown",
+                    },
+                })
+            );
 
             set({
-                channelVideos: data?.videos || data || [],
+                channelVideos: videos,
             });
 
         } catch (error) {

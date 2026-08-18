@@ -563,6 +563,10 @@ const getMyVideos = asyncHandler(async (req, res) => {
     const videos = await Video.find({
         owner: req.user._id
     })
+        .populate(
+            "owner",
+            "username avatar fullName"
+        )
         .sort({
             createdAt: -1
         });

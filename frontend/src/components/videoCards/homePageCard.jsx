@@ -129,39 +129,68 @@ const HomePageCard = ({ video }) => {
 
 
     return (
-        <button
-            type="button"
-            onClick={handleOpenVideo}
-            className="group w-full rounded-2xl text-left transition duration-200 hover:scale-[1.01]"
-        >
+        <div className="group w-full rounded-2xl text-left transition duration-200 p-3 cursor-pointer hover:bg-gray-200">
             <div className="w-full">
-                {/* Thumbnail */}
-                <div className="relative w-full aspect-video overflow-hidden rounded-2xl bg-gray-200">
-                    <img
-                        src={video.thumbnail}
-                        alt={video.title}
-                        className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
-                    />
+                {/* Thumbnail - click to open video */}
+                <button
+                    type="button"
+                    onClick={handleOpenVideo}
+                    className="block w-full"
+                >
+                    <div className="relative w-full aspect-video overflow-hidden rounded-2xl bg-gray-200">
+                        <img
+                            src={video.thumbnail}
+                            alt={video.title}
+                            className="h-full w-full object-cover transition duration-300"
+                        />
 
-                    <span className="absolute bottom-2 right-2 rounded-md bg-black/80 px-1.5 py-0.5 text-[11px] font-medium text-white">
-                        {formatDuration(video.duration)}
-                    </span>
-                </div>
+                        <span className="absolute bottom-2 right-2 rounded-md bg-black/80 px-1.5 py-0.5 text-[11px] font-medium text-white">
+                            {formatDuration(video.duration)}
+                        </span>
+                    </div>
+                </button>
 
                 {/* Info row */}
                 <div className="mt-3 flex gap-3">
-                    <img
-                        src={video.owner.avatar}
-                        alt={video.owner.fullName}
-                        className="h-9 w-9 flex-shrink-0 rounded-full object-cover border border-gray-200"
-                    />
+                    {/* Avatar - click to open channel */}
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/channel/${video.owner.username}`);
+                        }}
+                        className="flex-shrink-0"
+                    >
+                        <img
+                            src={video.owner.avatar}
+                            alt={video.owner.fullName}
+                            className="h-9 w-9 rounded-full object-cover border border-gray-200 hover:opacity-80 transition"
+                        />
+                    </button>
 
                     <div className="min-w-0 flex-1">
-                        <h3 className="line-clamp-2 text-[15px] font-medium leading-5 text-gray-900">
-                            {video.title}
-                        </h3>
+                        {/* Title - click to open video */}
+                        <button
+                            type="button"
+                            onClick={handleOpenVideo}
+                            className="block w-full text-left"
+                        >
+                            <h3 className="line-clamp-2 text-[15px] font-medium leading-5 text-gray-900">
+                                {video.title}
+                            </h3>
+                        </button>
 
-                        <p className="mt-1 text-sm text-gray-600">{video.owner.fullName}</p>
+                        {/* Channel name - click to open channel */}
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/channel/${video.owner.username}`);
+                            }}
+                            className="mt-1 text-sm text-gray-600 hover:text-gray-900"
+                        >
+                            {video.owner.fullName}
+                        </button>
 
                         <div className="mt-1 flex flex-wrap items-center gap-1 text-xs text-gray-500">
                             <span>{video.views} views</span>
@@ -171,7 +200,7 @@ const HomePageCard = ({ video }) => {
                     </div>
                 </div>
             </div>
-        </button>
+        </div>
     );
 };
 
