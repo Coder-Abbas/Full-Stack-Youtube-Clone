@@ -8,7 +8,7 @@ import { verifyJWT } from "../middlewares/auth.middlewares.js";
 import { Video } from "../models/video.models.js";
 import cloudinary from "cloudinary";
 import { Like } from "../models/like.models.js"
-
+import { Comment } from "../models/comment.models.js";
 
 
 
@@ -206,53 +206,82 @@ const getSelectedVideo = asyncHandler(async (req, res) => {
     // 1. Get video ID
     const { videoId } = req.params;
 
-    // 2. Validate ID
+    // 2. Validate video ID
     if (!isValidObjectId(videoId)) {
         throw new APIError(400, "Invalid video ID");
     }
 
-    // 3. Get authenticated user
-    const userId = req.user?._id;
-
-    // 4. Find video
+    // 3. Find video
     const video = await Video.findById(videoId);
 
-    // 5. Check video
+    // 4. Check video
     if (!video || !video.isPublished) {
-        throw new APIError(404, "Video not found or not published");
+        throw new APIError(
+            404,
+            "Video not found or not published"
+        );
     }
 
+    // 5. Check if current user liked the video
+    let isLiked = false;
 
-    // 6. Check if current user liked the video
-    const isLiked = await Like.exists({
-        video: videoId,
-        likedBy: userId
-    });
+    if (req.user) {
 
+        const videoLike = await Like.exists({
+            video: videoId,
+            likedBy: req.user._id
+        });
 
-    
-    // // 7. Get comments
-    // const comments = await Comment.find({
-    //     video: videoId
-    // })
-    //     .populate("owner", "username avatar")
-    //     .sort({ createdAt: -1 });
+        isLiked = Boolean(videoLike);
+    }
+
+    // 6. Get comments
+    const comments = await Comment.find({
+        video: videoId
+    })
+        .populate("owner", "username avatar")
+        .sort({ createdAt: -1 });
+
+    // 7. Add isLiked to every comment
+    const commentsWithLikes = await Promise.all(
+
+        comments.map(async (comment) => {
+
+            let isLiked = false;
+
+            if (req.user) {
+
+                const commentLike = await Like.exists({
+                    comment: comment._id,
+                    likedBy: req.user._id
+                });
+
+                isLiked = Boolean(commentLike);
+            }
+
+            return {
+                ...comment.toObject(),
+                isLiked
+            };
+        })
+    );
 
     // 8. Prepare response
     const videoData = {
         video,
-        isLiked: Boolean(isLiked),
-        // comments
+        isLiked,
+        comments: commentsWithLikes
     };
 
-    // 9. Response
-    return res.status(200).json(
-        new ApiResponse(
-            200,
-            videoData,
-            "Video fetched successfully"
-        )
-    );
+    // 9. Send response
+    return res.status(200)
+        .json(
+            new ApiResponse(
+                200,
+                videoData,
+                "Video fetched successfully"
+            )
+        );
 });
 
 const deleteVideo = asyncHandler(async (req, res) => {

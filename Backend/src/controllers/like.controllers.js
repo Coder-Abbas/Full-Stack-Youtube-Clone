@@ -79,7 +79,8 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
     }
 
     //3. get the authenticated User id
-    const userId = req.user._id;
+    const userId = req.user?._id;
+
 
     //4. check if the video exists
     const comment = await Comment.findById(commentId);
@@ -114,14 +115,12 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
 
     //6. count the likes
     const LikeCount = await Like.countDocuments({ comment: commentId });
-
-    //save in db
-    await Comment.findByIdAndUpdate(commentId, { likeCount: LikeCount }, { new: true });
+    await Comment.findByIdAndUpdate(commentId, { commentLikesCount: LikeCount }, { new: true });
 
     //7. send response
     return res.status(200)
         .json(
-            new ApiResponse(200, { likeCount: LikeCount, like }, "comment like toggled successfully")
+            new ApiResponse(200, { like }, "comment like toggled successfully")
         )
 
 
