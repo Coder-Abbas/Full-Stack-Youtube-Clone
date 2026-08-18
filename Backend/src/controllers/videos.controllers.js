@@ -1,4 +1,5 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { isValidObjectId } from "mongoose";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { APIError } from "../utils/APIError.js";
 import { User } from "../models/users.models.js"
@@ -6,6 +7,12 @@ import { uploadOnCloudinary } from "../utils/Cloudinary.js"
 import { verifyJWT } from "../middlewares/auth.middlewares.js";
 import { Video } from "../models/video.models.js";
 import cloudinary from "cloudinary";
+import { Like } from "../models/like.models.js"
+
+
+
+
+
 
 const deletepicold = async (imageUrl) => {
     try {
@@ -167,6 +174,10 @@ const getAllPublishedVideos = asyncHandler(async (req, res) => {
     //6. calculate total pages
     const totalPages = Math.ceil(totalVideos / limitNumber);
 
+    //add the likes count of that video
+
+
+
     //7. return the response
     return res.status(200)
         .json(
@@ -191,28 +202,58 @@ const getAllPublishedVideos = asyncHandler(async (req, res) => {
 
 
 const getSelectedVideo = asyncHandler(async (req, res) => {
-    //1. get the video id from params
+
+    // 1. Get video ID
     const { videoId } = req.params;
 
-    //2. validate ID
-    if (!videoId) {
-        throw new APIError(400, "Video ID is required")
+    // 2. Validate ID
+    if (!isValidObjectId(videoId)) {
+        throw new APIError(400, "Invalid video ID");
     }
 
-    //3. find the video 
+    // 3. Get authenticated user
+    const userId = req.user?._id;
+
+    // 4. Find video
     const video = await Video.findById(videoId);
 
-    //4. validatin + isPublished
+    // 5. Check video
     if (!video || !video.isPublished) {
-        throw new APIError(404, "Video not found or not published")
+        throw new APIError(404, "Video not found or not published");
     }
-    //5. return video
-    return res.status(200)
-        .json(
-            new ApiResponse(200, video, "Video fetched successfully")
-        )
-})
 
+
+    // 6. Check if current user liked the video
+    const isLiked = await Like.exists({
+        video: videoId,
+        likedBy: userId
+    });
+
+
+    
+    // // 7. Get comments
+    // const comments = await Comment.find({
+    //     video: videoId
+    // })
+    //     .populate("owner", "username avatar")
+    //     .sort({ createdAt: -1 });
+
+    // 8. Prepare response
+    const videoData = {
+        video,
+        isLiked: Boolean(isLiked),
+        // comments
+    };
+
+    // 9. Response
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            videoData,
+            "Video fetched successfully"
+        )
+    );
+});
 
 const deleteVideo = asyncHandler(async (req, res) => {
     //1. get the video id from params
@@ -358,9 +399,9 @@ const getViews = asyncHandler(async (req, res) => {
 
     //7. return video
     return res.status(200)
-    .json(
-        new ApiResponse(200, video, "Video views updated successfully")
-    )
+        .json(
+            new ApiResponse(200, video, "Video views updated successfully")
+        )
 })
 export {
     uploadvideo,

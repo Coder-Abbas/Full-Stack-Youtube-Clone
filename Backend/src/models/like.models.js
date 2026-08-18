@@ -1,4 +1,4 @@
-import mongoose, {Schema} from "mongoose";
+import mongoose, { Schema } from "mongoose";
 
 
 const likeSchema = new Schema(
@@ -18,7 +18,7 @@ const likeSchema = new Schema(
         likedBy: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
-        }
+        },
     },
     {
         timestamps: true,

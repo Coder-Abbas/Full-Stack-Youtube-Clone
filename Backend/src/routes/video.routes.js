@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { upload } from "../middlewares/multer.middlewares.js";
-import { verifyJWT } from "../middlewares/auth.middlewares.js";
+import { verifyJWT, optionalVerifyJWT } from "../middlewares/auth.middlewares.js";
 import {
     uploadvideo,
     isPublished,
@@ -46,6 +46,7 @@ router.route("/published").get(
 )
 
 router.route("/:videoId").get(
+    optionalVerifyJWT,
     getSelectedVideo
 )
 
