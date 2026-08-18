@@ -8,7 +8,8 @@ import {
     getSelectedVideo,
     deleteVideo,
     updateVideo,
-    getViews
+    getViews,
+    getMyVideos
 } from "../controllers/videos.controllers.js";
 
 
@@ -79,6 +80,10 @@ router.route("/:videoId/view").patch(
     getViews
 )
 
+router.route("/my-videos").get(
+    verifyJWT,
+    getMyVideos
+)
 
 
 export default router;

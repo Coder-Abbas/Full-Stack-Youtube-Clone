@@ -1,109 +1,178 @@
 import React from "react";
-import { MoreVertical } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import useVideoStore from "../../store/videoStore";
+import axiosInstance from "../../api/axiosInstance";
 
 const HomePageCard = ({ video }) => {
+    const navigate = useNavigate();
+    const openSelectedVideo = useVideoStore(
+        (state) => state.openSelectedVideo
+    );
+
+    const handleOpenVideo = () => {
+        openSelectedVideo(video._id);
+        axiosInstance.patch(`/videos/${video._id}/view`).catch(() => { });
+        navigate("/watch");
+    };
+
+    // =========================
+    // Format Video Duration
+    // =========================
+    const formatDuration = (seconds) => {
+
+        if (!seconds || seconds < 0) {
+            return "0:00";
+        }
+
+        const totalSeconds = Math.floor(seconds);
+
+        const hours = Math.floor(totalSeconds / 3600);
+
+        const minutes = Math.floor(
+            (totalSeconds % 3600) / 60
+        );
+
+        const remainingSeconds = totalSeconds % 60;
+
+        // If video is longer than 1 hour
+        if (hours > 0) {
+            return `${hours}:${minutes
+                .toString()
+                .padStart(2, "0")}:${remainingSeconds
+                    .toString()
+                    .padStart(2, "0")}`;
+        }
+
+        // Normal video
+        return `${minutes}:${remainingSeconds
+            .toString()
+            .padStart(2, "0")}`;
+    };
+
+
+    // =========================
+    // Format Upload Date
+    // =========================
+    const formatUploadDate = (date) => {
+
+        if (!date) {
+            return "";
+        }
+
+        const uploadDate = new Date(date);
+        const now = new Date();
+
+        const difference =
+            now.getTime() - uploadDate.getTime();
+
+        const seconds = Math.floor(
+            difference / 1000
+        );
+
+        const minutes = Math.floor(
+            seconds / 60
+        );
+
+        const hours = Math.floor(
+            minutes / 60
+        );
+
+        const days = Math.floor(
+            hours / 24
+        );
+
+        const weeks = Math.floor(
+            days / 7
+        );
+
+        const months = Math.floor(
+            days / 30
+        );
+
+        const years = Math.floor(
+            days / 365
+        );
+
+
+        if (seconds < 60) {
+            return "just now";
+        }
+
+        if (minutes < 60) {
+            return `${minutes} ${minutes === 1 ? "minute" : "minutes"
+                } ago`;
+        }
+
+        if (hours < 24) {
+            return `${hours} ${hours === 1 ? "hour" : "hours"
+                } ago`;
+        }
+
+        if (days < 7) {
+            return `${days} ${days === 1 ? "day" : "days"
+                } ago`;
+        }
+
+        if (weeks < 5) {
+            return `${weeks} ${weeks === 1 ? "week" : "weeks"
+                } ago`;
+        }
+
+        if (months < 12) {
+            return `${months} ${months === 1 ? "month" : "months"
+                } ago`;
+        }
+
+        return `${years} ${years === 1 ? "year" : "years"
+            } ago`;
+    };
+
+
     return (
-        <div
-            className="
-        group
-        w-full
-        p-3
-        rounded-xl
-        cursor-pointer
-        transition-all
-        duration-200
-        hover:bg-gray-200
-      "
+        <button
+            type="button"
+            onClick={handleOpenVideo}
+            className="group w-full rounded-2xl text-left transition duration-200 hover:scale-[1.01]"
         >
-            {/* ================= Thumbnail ================= */}
-            <div className="relative w-full aspect-video overflow-hidden rounded-xl bg-gray-200">
-                <img
-                    src={video.thumbnail}
-                    alt={video.title}
-                    className="
-            w-full
-            h-full
-            object-cover
-            transition-transform
-            duration-300
-          "
-                />
-
-                {/* Duration */}
-                <span
-                    className="
-            absolute
-            bottom-2
-            right-2
-            bg-black/80
-            text-white
-            text-xs
-            font-medium
-            px-1.5
-            py-0.5
-            rounded-2xl
-            flex
-            justify-center
-            items-center
-          "
-                >
-                    {video.duration}
-                </span>
-            </div>
-
-            {/* ================= Video Information ================= */}
-            <div className="flex gap-3 mt-3">
-                {/* Channel Avatar */}
-                <div className="flex-shrink-0">
+            <div className="w-full">
+                {/* Thumbnail */}
+                <div className="relative w-full aspect-video overflow-hidden rounded-2xl bg-gray-200">
                     <img
-                        src={video.channelAvatar}
-                        alt={video.channelName}
-                        className="
-              w-10
-              h-10
-              rounded-full
-              object-cover
-              border
-              border-gray-200
-            "
+                        src={video.thumbnail}
+                        alt={video.title}
+                        className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
                     />
+
+                    <span className="absolute bottom-2 right-2 rounded-md bg-black/80 px-1.5 py-0.5 text-[11px] font-medium text-white">
+                        {formatDuration(video.duration)}
+                    </span>
                 </div>
 
-                {/* Text Information */}
-                <div className="flex-1 min-w-0">
-                    {/* Title + Menu */}
-                    <div className="flex justify-between gap-2">
-                        <h3
-                            className="
-                text-sm
-                font-semibold
-                text-gray-900
-                line-clamp-2
-                leading-5
-                group-hover:text-black
-              "
-                        >
+                {/* Info row */}
+                <div className="mt-3 flex gap-3">
+                    <img
+                        src={video.owner.avatar}
+                        alt={video.owner.fullName}
+                        className="h-9 w-9 flex-shrink-0 rounded-full object-cover border border-gray-200"
+                    />
+
+                    <div className="min-w-0 flex-1">
+                        <h3 className="line-clamp-2 text-[15px] font-medium leading-5 text-gray-900">
                             {video.title}
                         </h3>
 
-                    </div>
+                        <p className="mt-1 text-sm text-gray-600">{video.owner.fullName}</p>
 
-                    {/* Channel Name */}
-                    <p className="text-sm text-gray-600 mt-1 hover:text-gray-900">
-                        {video.channelName}
-                    </p>
-
-                    {/* Views + Date */}
-                    <div className="flex items-center gap-1 text-sm text-gray-500">
-                        <span>{video.views} views</span>
-                        <span>•</span>
-                        <span>{video.uploadedAt}</span>
+                        <div className="mt-1 flex flex-wrap items-center gap-1 text-xs text-gray-500">
+                            <span>{video.views} views</span>
+                            <span>•</span>
+                            <span>{formatUploadDate(video.createdAt)}</span>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </button>
     );
 };
 
 export default HomePageCard;
-

@@ -16,7 +16,7 @@ const toggleSubscription = asyncHandler(async (req, res) => {
     }
 
     //check it is yourself
-    if (channelId === req.user._id.toString()) {
+    if (channelId === req.user?._id.toString()) {
         throw new APIError(400, "You cannot subscribe to yourself")
     }
 

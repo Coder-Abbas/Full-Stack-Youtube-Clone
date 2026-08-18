@@ -161,7 +161,7 @@ const registerUser = asyncHandler(async (req, res) => {
     //10. send the response
 
     return res.status(201).json(
-        new ApiResponse(200, "User created successfully", createdUser)
+        new ApiResponse(201, createdUser, "User created successfully")
     )
 
 })
@@ -269,8 +269,8 @@ const logoutUser = asyncHandler(async (req, res) => {
 
     return res
         .status(200)
-        .cookie("accessToken", options)
-        .cookie("refreshToken", options)
+        .clearCookie("accessToken", { path: "/" })
+        .clearCookie("refreshToken", { path: "/" })
         .json(
             new ApiResponse(
                 200,
@@ -317,8 +317,10 @@ const refreshToken = asyncHandler(async (req, res) => {
         //7. if matched then generate new access token and refresh token
 
         const options = {
-            httpsOnly: true,
-            secure: true
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            path: "/",
         }
 
         const { accessToken, newrefreshToken } = await generateAccessAndRefreshTokens(user._id)

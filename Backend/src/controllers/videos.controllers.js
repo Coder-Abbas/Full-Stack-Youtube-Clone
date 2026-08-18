@@ -9,6 +9,7 @@ import { Video } from "../models/video.models.js";
 import cloudinary from "cloudinary";
 import { Like } from "../models/like.models.js"
 import { Comment } from "../models/comment.models.js";
+import { Subscription } from "../models/subscription.models.js";
 
 
 
@@ -150,71 +151,105 @@ const isPublished = asyncHandler(async (req, res) => {
 
 
 const getAllPublishedVideos = asyncHandler(async (req, res) => {
-    //1. for pagination get the info
+
+    // 1. Get pagination information
     const { page, limit } = req.query;
 
-    //2. validation
+    // 2. Validate pagination
     const pageNumber = Number(page) || 1;
     const limitNumber = Number(limit) || 10;
 
-    //3. calculate skip
+    // 3. Calculate skip
     const skip = (pageNumber - 1) * limitNumber;
 
-    //4. get the videos from db
+
+    // 4. Get published videos
     const videos = await Video
         .find({ isPublished: true })
+        .populate(
+            "owner",
+            "username avatar fullName"
+        )
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limitNumber)
+        .limit(limitNumber);
 
 
-    //5. count publish video
-    const totalVideos = await Video.countDocuments({ isPublished: true });
-
-    //6. calculate total pages
-    const totalPages = Math.ceil(totalVideos / limitNumber);
-
-    //add the likes count of that video
+    // 5. Count published videos
+    const totalVideos = await Video.countDocuments({
+        isPublished: true
+    });
 
 
+    // 6. Calculate total pages
+    const totalPages = Math.ceil(
+        totalVideos / limitNumber
+    );
 
-    //7. return the response
-    return res.status(200)
+
+    // 7. Return response
+    return res
+        .status(200)
         .json(
             new ApiResponse(
                 200,
                 {
                     videos,
+
                     Pagination: {
                         currentPage: pageNumber,
                         limit: limitNumber,
                         totalVideos,
                         totalPages,
-                        hasNextPage: pageNumber < totalPages,
-                        hasPrevPage: pageNumber > 1
+                        hasNextPage:
+                            pageNumber < totalPages,
+                        hasPrevPage:
+                            pageNumber > 1
                     }
                 },
                 "Published videos fetched successfully"
             )
-        )
-
-})
+        );
+});
 
 
 const getSelectedVideo = asyncHandler(async (req, res) => {
 
+    // ==========================================
     // 1. Get video ID
+    // ==========================================
+
     const { videoId } = req.params;
 
+
+    // ==========================================
     // 2. Validate video ID
+    // ==========================================
+
     if (!isValidObjectId(videoId)) {
-        throw new APIError(400, "Invalid video ID");
+        throw new APIError(
+            400,
+            "Invalid video ID"
+        );
     }
 
-    // 3. Find video
-    const video = await Video.findById(videoId);
 
+    // ==========================================
+    // 3. Find video + populate owner
+    // ==========================================
+
+    const video = await Video
+        .findById(videoId)
+        .populate(
+            "owner",
+            "username fullName avatar"
+        );
+
+
+    // ==========================================
     // 4. Check video
+    // ==========================================
+
     if (!video || !video.isPublished) {
         throw new APIError(
             404,
@@ -222,7 +257,11 @@ const getSelectedVideo = asyncHandler(async (req, res) => {
         );
     }
 
-    // 5. Check if current user liked the video
+
+    // ==========================================
+    // 5. Check if current user liked video
+    // ==========================================
+
     let isLiked = false;
 
     if (req.user) {
@@ -235,46 +274,131 @@ const getSelectedVideo = asyncHandler(async (req, res) => {
         isLiked = Boolean(videoLike);
     }
 
-    // 6. Get comments
-    const comments = await Comment.find({
-        video: videoId
-    })
-        .populate("owner", "username avatar")
-        .sort({ createdAt: -1 });
 
-    // 7. Add isLiked to every comment
+    // ==========================================
+    // 6. Get total video likes
+    // ==========================================
+
+    const likesCount = await Like.countDocuments({
+        video: videoId
+    });
+
+
+    // ==========================================
+    // 7. Check subscription
+    // ==========================================
+
+    let isSubscribed = false;
+
+    if (req.user) {
+
+        const subscription = await Subscription.exists({
+            subscriber: req.user._id,
+            channel: video.owner._id
+        });
+
+        isSubscribed = Boolean(subscription);
+    }
+
+
+    // ==========================================
+    // 8. Get subscriber count
+    // ==========================================
+
+    const subscribersCount =
+        await Subscription.countDocuments({
+            channel: video.owner._id
+        });
+
+
+    // ==========================================
+    // 9. Get comments
+    // ==========================================
+
+    const comments = await Comment
+        .find({
+            video: videoId
+        })
+        .populate(
+            "owner",
+            "username fullName avatar"
+        )
+        .sort({
+            createdAt: -1
+        });
+
+
+    // ==========================================
+    // 10. Add comment likes
+    // ==========================================
+
     const commentsWithLikes = await Promise.all(
 
         comments.map(async (comment) => {
 
-            let isLiked = false;
+            // Check comment like
+            let isCommentLiked = false;
 
             if (req.user) {
 
-                const commentLike = await Like.exists({
-                    comment: comment._id,
-                    likedBy: req.user._id
+                const commentLike =
+                    await Like.exists({
+                        comment: comment._id,
+                        likedBy: req.user._id
+                    });
+
+                isCommentLiked =
+                    Boolean(commentLike);
+            }
+
+
+            // Get comment likes count
+            const commentLikesCount =
+                await Like.countDocuments({
+                    comment: comment._id
                 });
 
-                isLiked = Boolean(commentLike);
-            }
 
             return {
                 ...comment.toObject(),
-                isLiked
+
+                likesCount: commentLikesCount,
+
+                isLiked: isCommentLiked
             };
         })
     );
 
-    // 8. Prepare response
+
+    // ==========================================
+    // 11. Prepare video data
+    // ==========================================
+
     const videoData = {
-        video,
+
+        video: {
+            ...video.toObject(),
+
+            likesCount
+        },
+
         isLiked,
+
+        subscription: {
+            isSubscribed,
+            subscribersCount
+        },
+
         comments: commentsWithLikes
     };
 
-    // 9. Send response
-    return res.status(200)
+
+    // ==========================================
+    // 12. Send response
+    // ==========================================
+
+    return res
+        .status(200)
         .json(
             new ApiResponse(
                 200,
@@ -432,6 +556,30 @@ const getViews = asyncHandler(async (req, res) => {
             new ApiResponse(200, video, "Video views updated successfully")
         )
 })
+
+
+const getMyVideos = asyncHandler(async (req, res) => {
+
+    const videos = await Video.find({
+        owner: req.user._id
+    })
+        .sort({
+            createdAt: -1
+        });
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {
+                videos
+            },
+            "My videos fetched successfully"
+        )
+    );
+});
+
+
+
 export {
     uploadvideo,
     isPublished,
@@ -439,5 +587,6 @@ export {
     getSelectedVideo,
     deleteVideo,
     updateVideo,
-    getViews
+    getViews,
+    getMyVideos
 }

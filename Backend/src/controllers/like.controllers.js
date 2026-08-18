@@ -30,18 +30,20 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
 
 
     //5. check if the user has already liked the video
-    const existingLike = await Like.findOne(
-        {
-            video: videoId,
-            likedBy: userId
-        }
-    )
+    const existingLikes = await Like.find({
+        video: videoId,
+        likedBy: userId
+    }).sort({ createdAt: 1 });
+
     //let a like for true or false
     let like = false;
 
-    if (existingLike) {
-        //if the user has already liked the video, remove the like
-        await existingLike.deleteOne();
+    if (existingLikes.length > 0) {
+        // remove every duplicate like record for this user/video pair
+        await Like.deleteMany({
+            video: videoId,
+            likedBy: userId
+        });
         like = false;
     } else {
         //if the user has not liked the video, add a like
@@ -60,7 +62,7 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
     //7. send response
     return res.status(200)
         .json(
-            new ApiResponse(200, {like }, "Video like toggled successfully")
+            new ApiResponse(200, { like }, "Video like toggled successfully")
         )
 
 
@@ -90,18 +92,20 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
 
 
     //5. check if the user has already liked the video
-    const existingLike = await Like.findOne(
-        {
-            comment: commentId,
-            likedBy: userId
-        }
-    )
+    const existingLikes = await Like.find({
+        comment: commentId,
+        likedBy: userId
+    }).sort({ createdAt: 1 });
+
     //let a like for true or false
     let like = false;
 
-    if (existingLike) {
-        //if the user has already liked the video, remove the like
-        await existingLike.deleteOne();
+    if (existingLikes.length > 0) {
+        // remove every duplicate like record for this user/comment pair
+        await Like.deleteMany({
+            comment: commentId,
+            likedBy: userId
+        });
         like = false;
     } else {
         //if the user has not liked the video, add a like
@@ -149,18 +153,20 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
 
 
     //5. check if the user has already liked the video
-    const existingLike = await Like.findOne(
-        {
-            tweet: tweetId,
-            likedBy: userId
-        }
-    )
+    const existingLikes = await Like.find({
+        tweet: tweetId,
+        likedBy: userId
+    }).sort({ createdAt: 1 });
+
     //let a like for true or false
     let like = false;
 
-    if (existingLike) {
-        //if the user has already liked the video, remove the like
-        await existingLike.deleteOne();
+    if (existingLikes.length > 0) {
+        // remove every duplicate like record for this user/tweet pair
+        await Like.deleteMany({
+            tweet: tweetId,
+            likedBy: userId
+        });
         like = false;
     } else {
         //if the user has not liked the video, add a like

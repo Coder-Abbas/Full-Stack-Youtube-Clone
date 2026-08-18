@@ -7,7 +7,11 @@ const app = express();
 //use is used for middleware, it is used to add functionality to the express app
 
 app.use(cors({
-    origin: process.env.FRONTEND_URL,
+    origin: [
+        process.env.FRONTEND_URL,
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ].filter(Boolean),
     credentials: true,
 }));
 app.use(express.json({
@@ -19,7 +23,7 @@ app.use(express.urlencoded({
     limit: "10mb",
 }));
 
-app.use(express.static("public")); 
+app.use(express.static("public"));
 
 
 
