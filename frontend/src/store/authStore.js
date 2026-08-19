@@ -1,8 +1,9 @@
 import { create } from "zustand";
 import axiosInstance from "../api/axiosInstance";
 
-const useAuthStore = create((set) => ({
+const useAuthStore = create((set, get) => ({
     authUser: null,
+    accessToken: null,
     isCheckingAuth: true,
     isLoggingIn: false,
     isSigningUp: false,
@@ -58,9 +59,18 @@ const useAuthStore = create((set) => ({
 
             const response = await axiosInstance.post("/users/login", payload);
             const user = response?.data?.data?.user || response?.data?.user || null;
+            const accessToken = response?.data?.data?.accessToken || response?.data?.accessToken || null;
+
+            // Store accessToken in localStorage for socket.io authentication
+            if (accessToken) {
+                try {
+                    localStorage.setItem("accessToken", accessToken);
+                } catch (e) {}
+            }
 
             set({
                 authUser: user,
+                accessToken,
                 isLoggingIn: false,
                 error: null,
             });
@@ -72,8 +82,13 @@ const useAuthStore = create((set) => ({
         } catch (error) {
             const message = error?.response?.data?.message || error?.message || "Login failed";
 
+            try {
+                localStorage.removeItem("accessToken");
+            } catch (e) {}
+
             set({
                 authUser: null,
+                accessToken: null,
                 isLoggingIn: false,
                 error: message,
             });
@@ -92,11 +107,12 @@ const useAuthStore = create((set) => ({
             const response = await axiosInstance.get("/users/current-user");
             const user = response?.data?.data || response?.data?.user || null;
 
-            set({ authUser: user, isCheckingAuth: false, error: null });
+            set({ authUser: user, accessToken: null, isCheckingAuth: false, error: null });
             return user;
         } catch (error) {
             set({
                 authUser: null,
+                accessToken: null,
                 isCheckingAuth: false,
                 error: null,
             });
@@ -110,7 +126,10 @@ const useAuthStore = create((set) => ({
         } catch (error) {
             console.error("Logout error:", error);
         } finally {
-            set({ authUser: null, error: null });
+            try {
+                localStorage.removeItem("accessToken");
+            } catch (e) {}
+            set({ authUser: null, accessToken: null, error: null });
         }
     },
   updateAvatar: async (avatarFile) => {

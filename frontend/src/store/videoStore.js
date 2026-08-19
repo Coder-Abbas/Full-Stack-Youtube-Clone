@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import axiosInstance from "../api/axiosInstance";
 import useAuthStore from "./authStore";
+import { joinVideoRoom, leaveVideoRoom, subscribeToChannel, unsubscribeFromChannel } from "../api/socket";
 
 const { authUser, isAuthenticated } = useAuthStore.getState();
 
@@ -17,6 +18,7 @@ const useVideoStore = create((set, get) => ({
     isLoading: false,
 
     error: null,
+    
 
     // Used to notify other components that a new video was published
     videoPublishedVersion: 0,
@@ -73,6 +75,27 @@ const useVideoStore = create((set, get) => ({
     },
 
     comments: [],
+
+    // Real-time setters
+    setComments: (updater) => {
+        if (typeof updater === "function") {
+            set((prev) => ({ comments: updater(prev.comments) }));
+        } else {
+            set({ comments: updater });
+        }
+    },
+
+    setSelectedVideoData: (video) => {
+        set({ selectedVideo: video });
+    },
+
+    setSubscription: (subscription) => {
+        set({ subscription });
+    },
+
+    setIsLiked: (isLiked) => {
+        set({ isLiked });
+    },
 
 
     getVideos: async () => {
@@ -209,14 +232,19 @@ const useVideoStore = create((set, get) => ({
     // ==========================================
 
     toggleSubscription: async () => {
-
         try {
-
-            // Get the current selected video's owner ID from the store state
+            // Get the state from the store
             const state = useVideoStore.getState();
             const ownerId = state.selectedVideo?.owner?._id;
 
             if (!ownerId) return;
+
+            // Subscribe/unsubscribe to the channel room for real-time updates
+            if (!state.subscription.isSubscribed) {
+                subscribeToChannel(ownerId);
+            } else {
+                unsubscribeFromChannel(ownerId);
+            }
 
             await axiosInstance.post(
                 `/subscription/${ownerId}/subscribed`
@@ -224,18 +252,27 @@ const useVideoStore = create((set, get) => ({
 
             // Toggle subscription state locally
             const current = state.subscription;
+            const newIsSubscribed = !current.isSubscribed;
+            const newCount = current.isSubscribed
+                ? Math.max(0, current.subscribersCount - 1)
+                : current.subscribersCount + 1;
+
             set({
                 subscription: {
                     ...current,
-                    isSubscribed: !current.isSubscribed,
-                    subscribersCount: current.isSubscribed
-                        ? Math.max(0, current.subscribersCount - 1)
-                        : current.subscribersCount + 1,
+                    isSubscribed: newIsSubscribed,
+                    subscribersCount: newCount,
                 },
             });
 
-        } catch (error) {
+            // Keep socket room in sync with actual subscription state
+            if (newIsSubscribed) {
+                subscribeToChannel(ownerId);
+            } else {
+                unsubscribeFromChannel(ownerId);
+            }
 
+        } catch (error) {
             console.error(
                 "Error toggling subscription:",
                 error
@@ -249,6 +286,10 @@ const useVideoStore = create((set, get) => ({
     // ==========================================
 
     getSelectedVideo: async (videoId) => {
+        // Join the video room for real-time updates
+        if (videoId) {
+            joinVideoRoom(videoId);
+        }
 
         try {
 
@@ -296,6 +337,9 @@ const useVideoStore = create((set, get) => ({
 
                 // Subscription
                 subscription: response.data.data.subscription,
+
+                // Updated Channel
+                updatedChannel: response.data.data.updatedChannel,
 
                 // Comments
                 comments,
@@ -546,6 +590,10 @@ const useVideoStore = create((set, get) => ({
     // ==========================================
 
     clearSelectedVideo: () => {
+        // Leave the video room
+        if (get().selectedVideoId) {
+            leaveVideoRoom(get().selectedVideoId);
+        }
 
         set({
 

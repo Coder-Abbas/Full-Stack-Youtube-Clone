@@ -114,12 +114,9 @@ const Sidebar = ({ isSidebarOpen }) => {
             >
                 <Icon
                     size={22}
-                    strokeWidth={isActive ? 2.5 : 2}
                     className="
                         flex-shrink-0
                         transition-transform
-                        duration-200
-                        group-hover:scale-110
                     "
                 />
 

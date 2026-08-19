@@ -6,6 +6,7 @@ import HomePageCard from "../components/videoCards/homePageCard";
 import LoadingCards from "../components/loadingCards";
 
 import useVideoStore from "../store/videoStore";
+import useChannelStore from "../store/channelStore";
 
 
 const Home = () => {
@@ -19,6 +20,10 @@ const Home = () => {
         getVideos,
         videoPublishedVersion,
     } = useVideoStore();
+
+    const {
+        channelUpdatedVersion,
+    } = useChannelStore();
 
 
     // ==========================================
@@ -34,12 +39,12 @@ const Home = () => {
     // Initial videos
     // ==========================================
 
-    // Initial load + refresh when a video is published
+    // Initial load + refresh when a video is published or channel is updated
     useEffect(() => {
 
         getVideos();
 
-    }, [getVideos, videoPublishedVersion]);
+    }, [getVideos, videoPublishedVersion, channelUpdatedVersion]);
 
 
     // ==========================================

@@ -25,6 +25,7 @@ import {
 import useVideoStore from "../store/videoStore";
 import useAuthStore from "../store/authStore";
 import Navbar from "../components/navbar/navbar";
+import { getSocket } from "../api/socket";
 
 
 const WatchPageSkeleton = () => {
@@ -226,6 +227,13 @@ const SelectVideo = () => {
         toggleCommentLike,
     } = useVideoStore();
 
+    // Get store setters for real-time updates
+    const setComments = useVideoStore((state) => state.setComments);
+    const setSelectedVideoData = useVideoStore((state) => state.setSelectedVideoData);
+    const setSubscription = useVideoStore((state) => state.setSubscription);
+
+    const navigate = useNavigate();
+
     const { authUser } = useAuthStore();
 
 
@@ -274,6 +282,118 @@ const SelectVideo = () => {
     useEffect(() => {
         getSelectedVideo(selectedVideoId);
     }, [selectedVideoId, getSelectedVideo]);
+
+    // ==========================================
+    // Real-time updates via Socket.io
+    // ==========================================
+    useEffect(() => {
+        const socket = getSocket();
+        if (!socket) return;
+
+        // Handle real-time video like updates from other users
+        const handleVideoLikeUpdate = (data) => {
+            if (data?.videoId === selectedVideoId && selectedVideo) {
+                setSelectedVideoData({
+                    ...selectedVideo,
+                    likesCount: data.likesCount,
+                });
+            }
+        };
+
+        // Handle real-time comment like updates from other users
+        const handleCommentLikeUpdate = (data) => {
+            if (data?.videoId === selectedVideoId) {
+                setComments((prev) =>
+                    prev.map((c) =>
+                        c._id === data.commentId
+                            ? {
+                                ...c,
+                                commentLikesCount: data.likesCount,
+                            }
+                            : c
+                    )
+                );
+            }
+        };
+
+        // Handle real-time new comments from other users
+        const handleNewComment = (data) => {
+            if (data?.videoId === selectedVideoId && data?.comment) {
+                const { comment: newComment } = data;
+                // Convert avatar to https
+                const converted = {
+                    ...newComment,
+                    owner: {
+                        ...newComment.owner,
+                        avatar: newComment.owner?.avatar ? 
+                            (newComment.owner.avatar.startsWith("http://") 
+                                ? newComment.owner.avatar.replace("http://", "https://") 
+                                : newComment.owner.avatar) 
+                            : newComment.owner?.avatar,
+                    },
+                };
+
+                setComments((prev) => {
+                    // Avoid duplicates
+                    if (prev.some((c) => c._id === converted._id)) {
+                        return prev;
+                    }
+                    return [converted, ...prev];
+                });
+            }
+        };
+
+        // Handle comment updates from other users
+        const handleUpdateComment = (data) => {
+            if (data?.videoId === selectedVideoId && data?.comment) {
+                const { comment: updatedComment } = data;
+                setComments((prev) =>
+                    prev.map((c) =>
+                        c._id === updatedComment._id
+                            ? {
+                                ...c,
+                                ...updatedComment,
+                            }
+                            : c
+                    )
+                );
+            }
+        };
+
+        // Handle comment deletions from other users
+        const handleDeleteComment = (data) => {
+            if (data?.videoId === selectedVideoId && data?.commentId) {
+                setComments((prev) =>
+                    prev.filter((c) => c._id !== data.commentId)
+                );
+            }
+        };
+
+        // Handle video updates (title, description, views)
+        const handleVideoUpdate = (data) => {
+            if (data?.videoId === selectedVideoId && data?.video) {
+                setSelectedVideoData(data.video);
+            }
+        };
+
+        // Register socket event listeners
+        socket.on("video-like-update", handleVideoLikeUpdate);
+        socket.on("comment-like-update", handleCommentLikeUpdate);
+        socket.on("new-comment", handleNewComment);
+        socket.on("update-comment", handleUpdateComment);
+        socket.on("delete-comment", handleDeleteComment);
+        socket.on("video-update", handleVideoUpdate);
+
+        // Cleanup
+        return () => {
+            socket.off("video-like-update", handleVideoLikeUpdate);
+            socket.off("comment-like-update", handleCommentLikeUpdate);
+            socket.off("new-comment", handleNewComment);
+            socket.off("update-comment", handleUpdateComment);
+            socket.off("delete-comment", handleDeleteComment);
+            socket.off("video-update", handleVideoUpdate);
+        };
+    }, [selectedVideoId, selectedVideo]);
 
 
     // ==========================================

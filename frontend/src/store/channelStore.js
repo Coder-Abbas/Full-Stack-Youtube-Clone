@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import axiosInstance from "../api/axiosInstance";
+import useAuthStore from "./authStore";
 
 // ==========================================
 // Helpers
@@ -36,6 +37,15 @@ const useChannelStore = create((set, get) => ({
     isLoading: false,
 
     error: null,
+
+    // Used to notify other components that the channel was updated
+    channelUpdatedVersion: 0,
+
+    notifyChannelUpdated: () => {
+        set((state) => ({
+            channelUpdatedVersion: state.channelUpdatedVersion + 1,
+        }));
+    },
 
 
     // ==========================================
@@ -191,6 +201,11 @@ const useChannelStore = create((set, get) => ({
                 error: null,
             });
 
+            // Sync authUser in authStore so Navbar and other components update
+            useAuthStore.setState({
+                authUser: channel,
+            });
+
             return channel;
 
         } catch (error) {
@@ -298,6 +313,7 @@ const useChannelStore = create((set, get) => ({
     // PATCH /users/update-account
     // ==========================================
 
+    updatedChannel: false,
     updateChannel: async (details) => {
 
         try {
@@ -305,6 +321,7 @@ const useChannelStore = create((set, get) => ({
             set({
                 isUpdatingChannel: true,
                 updateError: null,
+                updatedChannel: false,
             });
 
 
@@ -346,9 +363,17 @@ const useChannelStore = create((set, get) => ({
                 channel: updatedChannel,
 
                 isUpdatingChannel: false,
-
+                updatedChannel: true,
                 updateError: null,
             });
+
+            // Sync authUser in authStore so Navbar and other components update
+            useAuthStore.setState({
+                authUser: updatedChannel,
+            });
+
+            // Notify other components that channel was updated
+            get().notifyChannelUpdated();
 
 
             return {
@@ -506,6 +531,14 @@ const useChannelStore = create((set, get) => ({
 
                 avatarError: null,
             });
+
+            // Sync authUser in authStore so Navbar and other components update
+            useAuthStore.setState({
+                authUser: updatedChannel,
+            });
+
+            // Notify other components that channel was updated
+            get().notifyChannelUpdated();
 
 
             return {

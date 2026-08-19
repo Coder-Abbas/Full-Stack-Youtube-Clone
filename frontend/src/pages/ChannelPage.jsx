@@ -15,6 +15,7 @@ import ProfileVideoCard from "../components/videoCards/myProfileCard";
 import ProfileSkeleton from "../components/ProfileSkeleton";
 import axiosInstance from "../api/axiosInstance";
 import useAuthStore from "../store/authStore";
+import { getSocket, subscribeToChannel, unsubscribeFromChannel } from "../api/socket";
 
 const ChannelPage = () => {
     const { username } = useParams();
@@ -89,6 +90,50 @@ const ChannelPage = () => {
         }
     }, [username]);
 
+    // ==========================================
+    // Real-time updates via Socket.io
+    // ==========================================
+    useEffect(() => {
+        const socket = getSocket();
+        if (!socket || !channel) return;
+
+        // Join channel room for real-time subscription updates
+        subscribeToChannel(channel._id);
+
+        // Handle real-time subscription updates
+        const handleSubscriptionUpdate = (data) => {
+            if (data?.channelId === channel._id) {
+                setTotalSubscribers(data.subscribersCount);
+            }
+        };
+
+        // Handle video published event
+        const handleVideoPublished = (data) => {
+            if (data?.channelId === channel._id) {
+                // Refresh videos when a video is published
+                fetchChannel();
+            }
+        };
+
+        // Handle video deleted event
+        const handleVideoDeleted = (data) => {
+            if (data?.channelId === channel._id) {
+                fetchChannel();
+            }
+        };
+
+        socket.on("subscription-update", handleSubscriptionUpdate);
+        socket.on("video-published", handleVideoPublished);
+        socket.on("video-deleted", handleVideoDeleted);
+
+        return () => {
+            socket.off("subscription-update", handleSubscriptionUpdate);
+            socket.off("video-published", handleVideoPublished);
+            socket.off("video-deleted", handleVideoDeleted);
+            unsubscribeFromChannel(channel._id);
+        };
+    }, [channel?._id]);
+
     const handleSubscribe = async () => {
         if (!channel?._id || isSubscribing) return;
         setIsSubscribing(true);
@@ -100,6 +145,12 @@ const ChannelPage = () => {
 
         try {
             await axiosInstance.post(`/subscription/${channel._id}/subscribed`);
+            // Subscribe/unsubscribe channel room based on new state
+            if (!wasSubscribed) {
+                subscribeToChannel(channel._id);
+            } else {
+                unsubscribeFromChannel(channel._id);
+            }
         } catch (err) {
             console.error("Subscribe error:", err);
             // rollback on failure
@@ -334,7 +385,7 @@ const ChannelPage = () => {
                                 {/* Posts */}
                                 <button
                                     onClick={() => setActiveTab("posts")}
-                                    className={`
+                                    className={` 
                                         relative
                                         py-4
                                         cursor-pointer
@@ -357,9 +408,6 @@ const ChannelPage = () => {
                                         <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-black rounded-full" />
                                     )}
                                 </button>
-
-                                {/* Note: no "Liked Videos" tab here - that's private to the
-                                    logged-in user and is intentionally omitted on public channels */}
                             </div>
 
                             {/* Search */}
@@ -470,8 +518,6 @@ const ChannelPage = () => {
                                             "
                                         >
                                             {filteredVideos.map((video) => (
-                                                // readOnly disables owner-only controls
-                                                // (edit/delete/visibility) on the card
                                                 <ProfileVideoCard
                                                     key={video._id}
                                                     video={video}
@@ -495,7 +541,7 @@ const ChannelPage = () => {
                                     </h3>
 
                                     <p className="text-gray-500 mt-2">
-                                        This channel hasn&apos;t posted anything yet.
+                                        This channel hasn't posted anything yet.
                                     </p>
                                 </div>
                             )}

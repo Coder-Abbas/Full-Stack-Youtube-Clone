@@ -57,6 +57,7 @@ const Profile = () => {
         isLoading,
         error,
         subscribersCount,
+        channelUpdatedVersion,
         getMyChannel,
         getMyVideos,
         updateAvatar,
@@ -74,7 +75,7 @@ const Profile = () => {
         getMyVideos();
         setTotalSubscribers(subscribersCount || 0);
         setTotalVideos(channelVideos?.length || 0);
-    }, [getMyChannel, getMyVideos, subscribersCount, channelVideos, authUser, isCheckingAuth]);
+    }, [getMyChannel, getMyVideos, subscribersCount, channelVideos, channelUpdatedVersion, authUser, isCheckingAuth]);
 
     // Search videos
     const filteredVideos = useMemo(() => {
@@ -443,7 +444,7 @@ const Profile = () => {
                                 {/* Edit Profile */}
                                 <div className="mt-5">
                                     <Link
-                                        to="/profile/edit"
+                                        to="/settings"
                                         className="
                                             inline-flex
                                             items-center
