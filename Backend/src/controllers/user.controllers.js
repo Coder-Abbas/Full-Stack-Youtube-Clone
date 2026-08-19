@@ -403,7 +403,7 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
 
 
     //3. find the user and update
-    const user = User.findByIdAndUpdate(
+    const user = await User.findByIdAndUpdate(
         req.user?._id,
         {
             $set: {

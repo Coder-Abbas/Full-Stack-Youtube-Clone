@@ -6,6 +6,7 @@ import { asyncHandler } from "../utils/asyncHandler.js"
 import { Like } from "../models/like.models.js"
 import { Comment } from "../models/comment.models.js"
 import { Tweet } from "../models/tweet.models.js"
+import { emitVideoLikeUpdate, emitCommentLikeUpdate } from "../socket/socketServer.js"
 
 
 
@@ -56,7 +57,10 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
 
     //6. update the likesCount in the video document
     const likeCount = await Like.countDocuments({ video: videoId });
-    await Video.findByIdAndUpdate(videoId, { likesCount: likeCount }, { new: true });
+    const updatedVideo = await Video.findByIdAndUpdate(videoId, { likesCount: likeCount }, { new: true });
+
+    // Emit real-time like update to all users watching this video
+    emitVideoLikeUpdate(videoId, likeCount, like, userId.toString());
 
 
     //7. send response
@@ -119,7 +123,13 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
 
     //6. count the likes
     const LikeCount = await Like.countDocuments({ comment: commentId });
-    await Comment.findByIdAndUpdate(commentId, { commentLikesCount: LikeCount }, { new: true });
+    const updatedComment = await Comment.findByIdAndUpdate(commentId, { commentLikesCount: LikeCount }, { new: true });
+
+    // Emit real-time comment like update to all users watching the video
+    const videoId = comment.video?.toString();
+    if (videoId) {
+        emitCommentLikeUpdate(videoId, commentId, LikeCount, like);
+    }
 
     //7. send response
     return res.status(200)

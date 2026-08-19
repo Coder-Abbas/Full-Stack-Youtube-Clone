@@ -10,6 +10,7 @@ import cloudinary from "cloudinary";
 import { Like } from "../models/like.models.js"
 import { Comment } from "../models/comment.models.js";
 import { Subscription } from "../models/subscription.models.js";
+import { emitVideoPublished, emitVideoUploaded, emitVideoUpdate, emitVideoDeleted } from "../socket/socketServer.js";
 
 
 
@@ -102,6 +103,8 @@ const uploadvideo = asyncHandler(async (req, res) => {
         throw new APIError(500, "Video upload failed")
     }
 
+    // Emit real-time event to the channel owner that a video was uploaded
+    emitVideoUploaded(req.user._id.toString(), videoInformation);
 
     //9. return the response
     return res.status(201)
@@ -140,6 +143,11 @@ const isPublished = asyncHandler(async (req, res) => {
 
     //7. save the video
     await findVideo.save();
+
+    // Emit real-time event when video is published
+    if (findVideo.isPublished) {
+        emitVideoPublished(req.user._id.toString(), findVideo);
+    }
 
     //8. return the response
     return res.status(200)
@@ -432,6 +440,8 @@ const deleteVideo = asyncHandler(async (req, res) => {
     await deleteOldVideo(oldVideo);
     await deletepicold(oldThumbnail);
 
+    // Emit real-time event when video is deleted
+    emitVideoDeleted(videoId, req.user._id.toString());
 
     //5. return response
     return res.status(200)
@@ -506,6 +516,8 @@ const updateVideo = asyncHandler(async (req, res) => {
     //save the video
     await video.save();
 
+    // Emit real-time video update event
+    emitVideoUpdate(videoId, video);
 
     // Delete OLD thumbnail
     if (thumbnailLocalPath) {
@@ -548,6 +560,9 @@ const getViews = asyncHandler(async (req, res) => {
 
     //6. save the video
     await video.save();
+
+    // Emit real-time video views update
+    emitVideoUpdate(videoId, video);
 
     //7. return video
     return res.status(200)
