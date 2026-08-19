@@ -113,6 +113,55 @@ const useAuthStore = create((set) => ({
             set({ authUser: null, error: null });
         }
     },
+  updateAvatar: async (avatarFile) => {
+    try {
+        const formData = new FormData();
+
+        formData.append("avatar", avatarFile);
+
+        const response = await axiosInstance.patch(
+            "/users/update-avatar",
+            formData
+        );
+
+        const updatedUser =
+            response?.data?.data ||
+            response?.data?.user ||
+            null;
+
+        if (!updatedUser) {
+            throw new Error("Updated user data was not returned");
+        }
+
+        set({
+            authUser: updatedUser,
+            error: null,
+        });
+
+        return {
+            success: true,
+            data: updatedUser,
+        };
+
+    } catch (error) {
+
+        const message =
+            error?.response?.data?.message ||
+            error?.message ||
+            "Failed to update avatar";
+
+        console.error("Update avatar error:", error);
+
+        set({
+            error: message,
+        });
+
+        return {
+            success: false,
+            message,
+        };
+    }
+},
 }));
 
 export default useAuthStore;

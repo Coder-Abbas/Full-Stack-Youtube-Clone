@@ -3,6 +3,8 @@ import { Menu, Search, User, LogOut, UserCircle, Upload } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import useAuthStore from "../../store/authStore";
 import UploadVideoModal from "../UploadVideoModal";
+import { Link } from "react-router-dom";
+import toast from "react-hot-toast";
 
 const Navbar = ({ toggleSidebar = () => { } }) => {
     const navigate = useNavigate();
@@ -29,7 +31,9 @@ const Navbar = ({ toggleSidebar = () => { } }) => {
     const handleLogout = async () => {
         await logout();
         setMenuOpen(false);
-        navigate("/login");
+        navigate("/");
+        toast.success("Logged out successfully!");
+
     };
 
     return (
@@ -39,7 +43,7 @@ const Navbar = ({ toggleSidebar = () => { } }) => {
                     <button
                         type="button"
                         onClick={toggleSidebar}
-                        className="rounded-full p-2 transition hover:bg-gray-100"
+                        className="rounded-full p-2 transition cursor-pointer hover:bg-gray-100"
                         aria-label="Toggle sidebar"
                     >
                         <Menu size={24} className="text-gray-700" />
@@ -103,22 +107,22 @@ const Navbar = ({ toggleSidebar = () => { } }) => {
 
                             {menuOpen && (
                                 <div className="absolute right-0 top-12 z-50 w-44 rounded-xl border border-gray-200 bg-white py-2 shadow-lg">
-                                    <button
+                                    <Link
                                         type="button"
                                         onClick={() => {
                                             setMenuOpen(false);
-                                            navigate("/profile");
                                         }}
-                                        className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 transition hover:bg-gray-100"
+                                        to="/profile"
+                                        className="flex w-full cursor-pointer items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 transition hover:bg-gray-100"
                                     >
                                         <UserCircle size={16} />
                                         Profile
-                                    </button>
+                                    </Link>
 
                                     <button
                                         type="button"
                                         onClick={handleLogout}
-                                        className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-red-600 transition hover:bg-red-50"
+                                        className="flex cursor-pointer w-full items-center gap-2 px-4 py-2 text-left text-sm text-red-600 transition hover:bg-red-50"
                                     >
                                         <LogOut size={16} />
                                         Logout
@@ -128,13 +132,13 @@ const Navbar = ({ toggleSidebar = () => { } }) => {
                             </div>
                         </>
                     ) : (
-                        <button
+                        <Link
                             type="button"
-                            onClick={() => navigate("/login")}
-                            className="rounded-full border border-blue-400 px-4 py-1.5 text-[18px] font-medium text-blue-500 transition hover:bg-blue-50"
+                            to="/login"
+                            className="rounded-full border cursor-pointer border-blue-500 px-4 py-2 text-[18px] font-medium text-blue-500 transition hover:bg-blue-50"
                         >
                             Login
-                        </button>
+                        </Link>
                     )}
                 </div>
             </div>

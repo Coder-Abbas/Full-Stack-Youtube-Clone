@@ -487,7 +487,7 @@ const SelectVideo = () => {
                                         setProgress(
                                             (videoRef.current.currentTime /
                                                 videoRef.current.duration) *
-                                                100
+                                            100
                                         );
                                     }}
                                 />
@@ -783,19 +783,18 @@ const SelectVideo = () => {
                                                         text-sm
                                                         cursor-pointer
                                                         transition
-                                                        ${
-                                                            subscription.isSubscribed
-                                                                ? `
+                                                        ${subscription.isSubscribed
+                                                    ? `
                                                                     bg-gray-200
                                                                     text-gray-900
                                                                     hover:bg-gray-300
                                                                 `
-                                                                : `
+                                                    : `
                                                                     bg-black
                                                                     text-white
                                                                     hover:bg-gray-800
                                                                 `
-                                                        }
+                                                }
                                                     `}
                                         >
 

@@ -8,10 +8,12 @@ import Register from './pages/Auth/register'
 import Profile from './pages/Profile'
 import EditProfile from './pages/EditProfile'
 import ChannelPage from './pages/ChannelPage'
+import { Toaster } from "react-hot-toast";
 
 const App = () => {
   return (
     <div>
+      <Toaster />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/liked-videos" element={<LikedVideos />} />

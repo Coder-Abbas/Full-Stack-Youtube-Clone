@@ -1,5 +1,8 @@
 import { create } from "zustand";
 import axiosInstance from "../api/axiosInstance";
+import useAuthStore from "./authStore";
+
+const { authUser, isAuthenticated } = useAuthStore.getState();
 
 // Helper to convert http:// to https:// for Cloudinary URLs
 const toHttps = (url = "") => {
@@ -8,20 +11,13 @@ const toHttps = (url = "") => {
 };
 
 const useVideoStore = create((set) => ({
-    // ==========================================
-    // Home Page Videos
-    // ==========================================
-
+    
     videos: [],
 
     isLoading: false,
 
     error: null,
 
-
-    // ==========================================
-    // Selected Video
-    // ==========================================
 
     selectedVideoId: null,
 
@@ -33,27 +29,13 @@ const useVideoStore = create((set) => ({
 
     isLiked: false,
 
-
-    // ==========================================
-    // Subscription
-    // ==========================================
-
     subscription: {
         isSubscribed: false,
         subscribersCount: 0,
     },
 
-
-    // ==========================================
-    // Comments
-    // ==========================================
-
     comments: [],
 
-
-    // ==========================================
-    // Get All Videos
-    // ==========================================
 
     getVideos: async () => {
 
@@ -134,10 +116,10 @@ const useVideoStore = create((set) => ({
             const response = await axiosInstance.get(
                 "/likes/liked-videos"
             );
-
+            console.log("Liked videos response:", response.data);
             // Backend returns array of { video: {...} } objects
             const rawLiked = response.data.data || [];
-
+            console.log("Raw liked videos:", rawLiked);
             // Extract the video from each like object and convert URLs
             const likedVideos = rawLiked.map((item) => {
                 const video = item.video || item;
@@ -159,16 +141,14 @@ const useVideoStore = create((set) => ({
 
         } catch (error) {
 
-            console.error(
-                "Error fetching liked videos:",
-                error
-            );
+            
 
             set({
                 likedVideosError:
                     error.response?.data?.message ||
                     "Failed to fetch liked videos",
                 isLikedVideosLoading: false,
+                likedVideos: [],
             });
         }
     },

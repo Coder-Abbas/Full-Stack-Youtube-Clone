@@ -43,13 +43,11 @@ router.route("/toggle/publish/:videoId").patch(
 )
 
 router.route("/published").get(
+    optionalVerifyJWT,
     getAllPublishedVideos
 )
 
-router.route("/:videoId").get(
-    optionalVerifyJWT,
-    getSelectedVideo
-)
+
 
 router.route("/:videoId").delete(
     verifyJWT,
@@ -83,6 +81,12 @@ router.route("/:videoId/view").patch(
 router.route("/my-videos").get(
     verifyJWT,
     getMyVideos
+)
+
+
+router.route("/:videoId").get(
+    optionalVerifyJWT,
+    getSelectedVideo
 )
 
 

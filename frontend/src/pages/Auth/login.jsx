@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, LogIn } from "lucide-react";
 
 import useAuthStore from "./../../store/authStore";
+import toast from "react-hot-toast";
 
 
 const Login = () => {
@@ -58,6 +59,7 @@ const Login = () => {
     if (result.success) {
 
       navigate("/");
+      toast.success("Logged in successfully!");
 
     }
 

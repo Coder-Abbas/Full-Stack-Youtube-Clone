@@ -18,7 +18,7 @@ const ProfileSkeleton = () => {
                         <div className="h-4 w-48 bg-gray-200 rounded" />
                         <div className="flex gap-3 pt-2">
                             <div className="h-10 w-32 bg-gray-200 rounded-full" />
-                            <div className="h-10 w-32 bg-gray-200 rounded-full" />
+                            
                         </div>
                     </div>
                 </div>
@@ -27,6 +27,7 @@ const ProfileSkeleton = () => {
                 <div className="flex gap-6 mt-10 border-b border-gray-200 pb-3">
                     <div className="h-5 w-16 bg-gray-200 rounded" />
                     <div className="h-5 w-20 bg-gray-200 rounded" />
+                     <div className="h-5 w-20 bg-gray-200 rounded" />
                 </div>
 
                 {/* Videos Grid Skeleton */}

@@ -1,11 +1,27 @@
 import { create } from "zustand";
 import axiosInstance from "../api/axiosInstance";
 
-// Helper to convert http:// to https:// for Cloudinary URLs
+// ==========================================
+// Helpers
+// ==========================================
+
 const toHttps = (url = "") => {
     if (!url) return url;
-    return url.startsWith("http://") ? url.replace("http://", "https://") : url;
+
+    return url.startsWith("http://")
+        ? url.replace("http://", "https://")
+        : url;
 };
+
+// Prevent browser/CDN from showing an old cached avatar
+const addCacheBuster = (url = "") => {
+    if (!url) return "";
+
+    const separator = url.includes("?") ? "&" : "?";
+
+    return `${url}${separator}v=${Date.now()}`;
+};
+
 
 const useChannelStore = create((set, get) => ({
 
@@ -72,55 +88,110 @@ const useChannelStore = create((set, get) => ({
                 error: null,
             });
 
+            // ======================================
+            // Get current authenticated user
+            // ======================================
+
             const response = await axiosInstance.get(
                 "/users/current-user"
             );
 
-            // Backend returns: new ApiResponse(200, req.user, ...)
-            // So response.data.data is the user directly
-            const rawUser = response.data.data;
+            const rawUser = response?.data?.data;
 
-            // Convert avatar to https
-            const channelBase =
-                rawUser && typeof rawUser === "object"
-                    ? {
-                          ...rawUser,
-                          avatar: toHttps(rawUser.avatar),
-                          coverImage: toHttps(rawUser.coverImage),
-                      }
-                    : rawUser;
+            if (!rawUser) {
+                throw new Error("User data not found");
+            }
 
-            // Fetch channel profile to get subscribersCount and isSubscribed
+
+            // ======================================
+            // Base channel data
+            // ======================================
+
+            const channelBase = {
+                ...rawUser,
+
+                avatar: toHttps(rawUser?.avatar),
+
+                coverImage: toHttps(rawUser?.coverImage),
+            };
+
+
+            // ======================================
+            // Get channel profile
+            // For subscribersCount etc.
+            // ======================================
+
             let channel = channelBase;
-            try {
-                if (channelBase?.username) {
-                    const channelResponse = await axiosInstance.get(
-                        `/users/c/${channelBase.username}`
-                    );
-                    const channelData = channelResponse.data.data;
 
-                    // Merge channel stats into the channel object
-                    if (channelData && typeof channelData === "object") {
+            try {
+
+                if (channelBase?.username) {
+
+                    const channelResponse =
+                        await axiosInstance.get(
+                            `/users/c/${channelBase.username}`
+                        );
+
+                    const channelData =
+                        channelResponse?.data?.data;
+
+
+                    if (
+                        channelData &&
+                        typeof channelData === "object"
+                    ) {
+
                         channel = {
+
                             ...channelBase,
+
                             ...channelData,
-                            avatar: toHttps(channelData.avatar || channelBase.avatar),
-                            coverImage: toHttps(channelData.coverImage || channelBase.coverImage),
-                            subscribersCount: channelData.subscribersCount || 0,
-                            subscribedToCount: channelData.subscribedToCount || 0,
-                            isSubscribed: channelData.isSubscribed || false,
+
+                            avatar: toHttps(
+                                channelData?.avatar ||
+                                channelBase?.avatar
+                            ),
+
+                            coverImage: toHttps(
+                                channelData?.coverImage ||
+                                channelBase?.coverImage
+                            ),
+
+                            subscribersCount:
+                                channelData?.subscribersCount ?? 0,
+
+                            subscribedToCount:
+                                channelData?.subscribedToCount ?? 0,
+
+                            isSubscribed:
+                                channelData?.isSubscribed ?? false,
                         };
                     }
                 }
-            } catch (channelErr) {
-                console.error("Fetch channel stats error:", channelErr);
-                // If channel profile fetch fails, keep the base user data
+
+            } catch (channelError) {
+
+                console.error(
+                    "Fetch channel profile error:",
+                    channelError
+                );
+
+                // Keep current-user data
+                channel = channelBase;
             }
+
+
+            // ======================================
+            // Update Zustand
+            // ======================================
 
             set({
                 channel,
                 isLoading: false,
+                error: null,
             });
+
+            return channel;
 
         } catch (error) {
 
@@ -129,14 +200,19 @@ const useChannelStore = create((set, get) => ({
                 error
             );
 
+            const message =
+                error?.response?.data?.message ||
+                error?.message ||
+                "Failed to load channel";
+
+
             set({
                 channel: null,
                 isLoading: false,
-
-                error:
-                    error.response?.data?.message ||
-                    "Failed to load channel",
+                error: message,
             });
+
+            return null;
         }
     },
 
@@ -154,27 +230,52 @@ const useChannelStore = create((set, get) => ({
                 "/videos/my-videos"
             );
 
-            const data = response.data.data;
-            const rawVideos = data?.videos || data || [];
 
-            // Convert http:// to https:// for video thumbnails and video files
-            const videos = (Array.isArray(rawVideos) ? rawVideos : []).map(
-                (video) => ({
-                    ...video,
-                    thumbnail: toHttps(video.thumbnail),
-                    videoFile: toHttps(video.videoFile),
-                    // Give fallback owner data if not populated from backend
-                    owner: video.owner || {
+            const data = response?.data?.data;
+
+            const rawVideos =
+                data?.videos ||
+                data ||
+                [];
+
+
+            const videos = (
+                Array.isArray(rawVideos)
+                    ? rawVideos
+                    : []
+            ).map((video) => ({
+
+                ...video,
+
+                thumbnail: toHttps(
+                    video?.thumbnail
+                ),
+
+                videoFile: toHttps(
+                    video?.videoFile
+                ),
+
+                owner: video?.owner
+                    ? {
+                        ...video.owner,
+
+                        avatar: toHttps(
+                            video.owner.avatar
+                        ),
+                    }
+                    : {
                         avatar: "",
                         fullName: "Unknown",
                         username: "unknown",
                     },
-                })
-            );
+            }));
+
 
             set({
                 channelVideos: videos,
             });
+
+            return videos;
 
         } catch (error) {
 
@@ -186,6 +287,8 @@ const useChannelStore = create((set, get) => ({
             set({
                 channelVideos: [],
             });
+
+            return [];
         }
     },
 
@@ -193,7 +296,6 @@ const useChannelStore = create((set, get) => ({
     // ==========================================
     // Update Account Details
     // PATCH /users/update-account
-    // Sends JSON: { fullName, email, username }
     // ==========================================
 
     updateChannel: async (details) => {
@@ -205,30 +307,55 @@ const useChannelStore = create((set, get) => ({
                 updateError: null,
             });
 
-            const response = await axiosInstance.patch(
-                "/users/update-account",
-                details
-            );
 
-            // Backend returns: new ApiResponse(200, user, ...)
-            // So response.data.data is the updated user directly
-            const updatedUser = response.data.data;
-            const currentChannel = get().channel;
+            const response =
+                await axiosInstance.patch(
+                    "/users/update-account",
+                    details
+                );
+
+
+            const updatedUser =
+                response?.data?.data;
+
+
+            const currentChannel =
+                get().channel;
+
+
+            const updatedChannel = {
+
+                ...(currentChannel || {}),
+
+                ...(updatedUser || {}),
+
+                avatar: toHttps(
+                    updatedUser?.avatar ||
+                    currentChannel?.avatar
+                ),
+
+                coverImage: toHttps(
+                    updatedUser?.coverImage ||
+                    currentChannel?.coverImage
+                ),
+            };
+
 
             set({
-                channel: {
-                    ...(currentChannel || {}),
-                    ...(updatedUser || {}),
-                    avatar: toHttps(
-                        updatedUser?.avatar || currentChannel?.avatar
-                    ),
-                },
+
+                channel: updatedChannel,
+
                 isUpdatingChannel: false,
+
+                updateError: null,
             });
 
+
             return {
+
                 success: true,
-                data: updatedUser || response.data.data,
+
+                data: updatedChannel,
             };
 
         } catch (error) {
@@ -238,17 +365,24 @@ const useChannelStore = create((set, get) => ({
                 error
             );
 
+
             const message =
-                error.response?.data?.message ||
+                error?.response?.data?.message ||
                 "Failed to update account";
 
+
             set({
+
                 isUpdatingChannel: false,
+
                 updateError: message,
             });
 
+
             return {
+
                 success: false,
+
                 message,
             };
         }
@@ -258,49 +392,132 @@ const useChannelStore = create((set, get) => ({
     // ==========================================
     // Update Avatar
     // PATCH /users/update-avatar
-    // Sends: avatar (file) as multipart/form-data
     // ==========================================
 
     updateAvatar: async (avatarFile) => {
 
         try {
 
+            if (!avatarFile) {
+
+                return {
+                    success: false,
+                    message: "Avatar image is required",
+                };
+            }
+
+
             set({
+
                 isUpdatingAvatar: true,
+
                 avatarError: null,
             });
 
-            const formData = new FormData();
-            formData.append("avatar", avatarFile);
 
-            const response = await axiosInstance.patch(
-                "/users/update-avatar",
-                formData,
-                {
-                    headers: {
-                        "Content-Type": "multipart/form-data",
-                    },
-                }
+            // ======================================
+            // Create FormData
+            // ======================================
+
+            const formData = new FormData();
+
+            formData.append(
+                "avatar",
+                avatarFile
             );
 
-            const updatedUser = response.data.data;
-            const currentChannel = get().channel;
+
+           
+
+            const response =
+                await axiosInstance.patch(
+                    "/users/update-avatar",
+                    formData
+                );
+
+
+           
+
+            const updatedUser =
+                response?.data?.data;
+
+
+            if (!updatedUser) {
+
+                throw new Error(
+                    "Updated user data was not returned"
+                );
+            }
+
+
+            // ======================================
+            // Current channel
+            // ======================================
+
+            const currentChannel =
+                get().channel;
+
+
+            // ======================================
+            // New avatar URL
+            // ======================================
+
+            const avatarUrl =
+                toHttps(
+                    updatedUser?.avatar
+                );
+
+
+            // ======================================
+            // Add cache buster
+            //
+            // Example:
+            // https://cloudinary.../avatar.jpg?v=123456
+            //
+            // This prevents browser/CDN cache
+            // from showing the old avatar.
+            // ======================================
+
+            const freshAvatarUrl =
+                addCacheBuster(
+                    avatarUrl
+                );
+
+
+            // ======================================
+            // Update channel immediately
+            // ======================================
+
+            const updatedChannel = {
+
+                ...(currentChannel || {}),
+
+                ...updatedUser,
+
+                avatar: freshAvatarUrl,
+            };
+
 
             set({
-                channel: {
-                    ...(currentChannel || {}),
-                    ...(updatedUser || {}),
-                    avatar: toHttps(
-                        updatedUser?.avatar ||
-                            currentChannel?.avatar
-                    ),
-                },
+
+                channel: updatedChannel,
+
                 isUpdatingAvatar: false,
+
+                avatarError: null,
             });
 
+
             return {
+
                 success: true,
-                data: updatedUser || response.data.data,
+
+                data: {
+
+                    ...updatedUser,
+
+                    avatar: freshAvatarUrl,
+                },
             };
 
         } catch (error) {
@@ -310,17 +527,25 @@ const useChannelStore = create((set, get) => ({
                 error
             );
 
+
             const message =
-                error.response?.data?.message ||
+                error?.response?.data?.message ||
+                error?.message ||
                 "Failed to update avatar";
 
+
             set({
+
                 isUpdatingAvatar: false,
+
                 avatarError: message,
             });
 
+
             return {
+
                 success: false,
+
                 message,
             };
         }
@@ -330,34 +555,48 @@ const useChannelStore = create((set, get) => ({
     // ==========================================
     // Change Password
     // POST /users/change-password
-    // Sends: oldPassword, newPassword, confPassword
     // ==========================================
 
-    changePassword: async (oldPassword, newPassword, confPassword) => {
+    changePassword: async (
+        oldPassword,
+        newPassword,
+        confPassword
+    ) => {
 
         try {
 
             set({
+
                 isChangingPassword: true,
+
                 passwordError: null,
             });
 
-            const response = await axiosInstance.post(
-                "/users/change-password",
-                {
-                    oldPassword,
-                    newPassword,
-                    confPassword,
-                }
-            );
+
+            const response =
+                await axiosInstance.post(
+                    "/users/change-password",
+                    {
+                        oldPassword,
+                        newPassword,
+                        confPassword,
+                    }
+                );
+
 
             set({
+
                 isChangingPassword: false,
+
+                passwordError: null,
             });
 
+
             return {
+
                 success: true,
-                data: response.data.data,
+
+                data: response?.data?.data,
             };
 
         } catch (error) {
@@ -367,17 +606,24 @@ const useChannelStore = create((set, get) => ({
                 error
             );
 
+
             const message =
-                error.response?.data?.message ||
+                error?.response?.data?.message ||
                 "Failed to change password";
 
+
             set({
+
                 isChangingPassword: false,
+
                 passwordError: message,
             });
 
+
             return {
+
                 success: false,
+
                 message,
             };
         }
@@ -394,16 +640,24 @@ const useChannelStore = create((set, get) => ({
         try {
 
             set({
+
                 isDeletingVideo: true,
+
                 deleteError: null,
             });
+
 
             await axiosInstance.delete(
                 `/videos/${videoId}`
             );
 
+
+            // ======================================
             // Remove deleted video immediately
+            // ======================================
+
             set((state) => ({
+
                 channelVideos:
                     state.channelVideos.filter(
                         (video) =>
@@ -411,9 +665,13 @@ const useChannelStore = create((set, get) => ({
                     ),
 
                 isDeletingVideo: false,
+
+                deleteError: null,
             }));
 
+
             return {
+
                 success: true,
             };
 
@@ -424,17 +682,24 @@ const useChannelStore = create((set, get) => ({
                 error
             );
 
+
             const message =
-                error.response?.data?.message ||
+                error?.response?.data?.message ||
                 "Failed to delete video";
 
+
             set({
+
                 isDeletingVideo: false,
+
                 deleteError: message,
             });
 
+
             return {
+
                 success: false,
+
                 message,
             };
         }

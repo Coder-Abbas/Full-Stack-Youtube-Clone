@@ -9,18 +9,8 @@ import useVideoStore from "../store/videoStore";
 
 
 const Home = () => {
-
-  // ==========================================
-  // Sidebar
-  // ==========================================
-
   const [isSidebarOpen, setIsSidebarOpen] =
     useState(true);
-
-
-  // ==========================================
-  // Zustand
-  // ==========================================
 
   const {
     videos,
@@ -29,11 +19,6 @@ const Home = () => {
     getVideos,
   } = useVideoStore();
 
-
-  // ==========================================
-  // Toggle Sidebar
-  // ==========================================
-
   const toggleSidebar = () => {
 
     setIsSidebarOpen((prev) => !prev);
@@ -41,9 +26,6 @@ const Home = () => {
   };
 
 
-  // ==========================================
-  // Fetch Videos
-  // ==========================================
 
   useEffect(() => {
 
@@ -66,11 +48,6 @@ const Home = () => {
   return (
 
     <div className="h-screen overflow-hidden bg-gray-50">
-
-
-      {/* ================================================= */}
-      {/* NAVBAR */}
-      {/* ================================================= */}
 
       <header
         className="
@@ -133,7 +110,7 @@ const Home = () => {
                     duration-300
 
                     ${isSidebarOpen
-            ? "left-64"
+            ? "left-54"
             : "left-20"
           }
                 `}
@@ -202,14 +179,14 @@ const Home = () => {
             visibleVideos.length > 0 && (
 
               <div
-                className="
+                className=" 
                                     grid
                                     grid-cols-1
                                     sm:grid-cols-2
                                     lg:grid-cols-3
                                     xl:grid-cols-3
-                                    gap-x-5
-                                    gap-y-8
+                                    gap-x-0
+                                    gap-y-2
                                 "
               >
 

@@ -1,13 +1,33 @@
 import React, { useEffect, useState } from "react";
 import { Video } from "lucide-react";
+import { Link } from "react-router-dom";
 
 import Navbar from "../components/navbar/navbar";
 import Sidebar from "../components/sidebar";
 import HomePageCard from "../components/videoCards/homePageCard";
+import LoadingCards from "../components/loadingCards";
+
 import useVideoStore from "../store/videoStore";
+import useAuthStore from "../store/authStore";
+
 
 const LikedVideos = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+
+    // ==========================================
+    // Auth Store
+    // ==========================================
+
+    const {
+        authUser,
+        isCheckingAuth,
+    } = useAuthStore();
+
+
+    // ==========================================
+    // Video Store
+    // ==========================================
 
     const {
         likedVideos,
@@ -16,22 +36,213 @@ const LikedVideos = () => {
         getLikedVideos,
     } = useVideoStore();
 
+
+    // ==========================================
+    // Sidebar
+    // ==========================================
+
     const toggleSidebar = () => {
         setIsSidebarOpen((prev) => !prev);
     };
 
+
+    // ==========================================
+    // Fetch Liked Videos
+    // ==========================================
+
     useEffect(() => {
+        // Wait until authentication check is complete
+        if (isCheckingAuth) return;
+
+        // Don't fetch liked videos if user is not logged in
+        if (!authUser) return;
+
         getLikedVideos();
-    }, [getLikedVideos]);
+    }, [
+        authUser,
+        isCheckingAuth,
+        getLikedVideos,
+    ]);
+
+
+    // ==========================================
+    // Safe Array
+    // ==========================================
+
+    const videoList = Array.isArray(likedVideos)
+        ? likedVideos
+        : [];
+
+
+    // ==========================================
+    // Auth Loading
+    // ==========================================
+
+    if (isCheckingAuth) {
+        return (
+            <div className="h-screen overflow-hidden bg-gray-50">
+
+                {/* Navbar */}
+                <header className="fixed top-0 left-0 right-0 z-50 h-16">
+                    <Navbar
+                        toggleSidebar={toggleSidebar}
+                    />
+                </header>
+
+                {/* Sidebar */}
+                <aside
+                    className={`
+                        fixed
+                        left-0
+                        top-16
+                        bottom-0
+                        z-40
+                        transition-all
+                        duration-300
+                        ${isSidebarOpen ? "w-64" : "w-20"}
+                    `}
+                >
+                    <Sidebar
+                        isSidebarOpen={isSidebarOpen}
+                    />
+                </aside>
+
+                {/* Loading Skeleton */}
+                <main
+                    className={`
+                        absolute
+                        top-16
+                        bottom-0
+                        right-0
+                        overflow-y-auto
+                        transition-all
+                        duration-300
+                        ${isSidebarOpen ? "left-64" : "left-20"}
+                    `}
+                >
+                    <div className="p-6">
+                        <LoadingCards count={8} />
+                    </div>
+                </main>
+
+            </div>
+        );
+    }
+
+
+    // ==========================================
+    // Not Logged In
+    // ==========================================
+
+    if (!authUser) {
+        return (
+            <div className="h-screen overflow-hidden bg-gray-50">
+
+                {/* Navbar */}
+                <header className="fixed top-0 left-0 right-0 z-50 h-16">
+                    <Navbar
+                        toggleSidebar={toggleSidebar}
+                    />
+                </header>
+
+                {/* Sidebar */}
+                <aside
+                    className={`
+                        fixed
+                        left-0
+                        top-16
+                        bottom-0
+                        z-40
+                        transition-all
+                        duration-300
+                        ${isSidebarOpen ? "w-64" : "w-20"}
+                    `}
+                >
+                    <Sidebar
+                        isSidebarOpen={isSidebarOpen}
+                    />
+                </aside>
+
+                {/* Main */}
+                <main
+                    className={`
+                        absolute
+                        top-16
+                        bottom-0
+                        right-0
+                        overflow-y-auto
+                        transition-all
+                        duration-300
+                        ${isSidebarOpen ? "left-64" : "left-20"}
+                    `}
+                >
+                    <div
+                        className="
+                            flex
+                            flex-col
+                            items-center
+                            justify-center
+                            h-full
+                        "
+                    >
+                        <Video
+                            size={70}
+                            className="text-gray-300 mb-4"
+                        />
+
+                        <p className="text-gray-700 text-lg mb-4">
+                            Please log in to view your liked videos.
+                        </p>
+
+                        <Link
+                            to="/login"
+                            className="
+                                px-6
+                                py-2
+                                font-medium
+                                text-lg
+                                border
+                                border-blue-500
+                                text-blue-500
+                                rounded-lg
+                                transition
+                                duration-300
+                                hover:bg-blue-500
+                                hover:text-white
+                            "
+                        >
+                            Login
+                        </Link>
+                    </div>
+                </main>
+
+            </div>
+        );
+    }
+
+
+    // ==========================================
+    // Main Page
+    // ==========================================
 
     return (
         <div className="h-screen overflow-hidden bg-gray-50">
-            {/* Navbar */}
+
+            {/* ======================================
+                NAVBAR
+            ====================================== */}
+
             <header className="fixed top-0 left-0 right-0 z-50 h-16">
-                <Navbar toggleSidebar={toggleSidebar} />
+                <Navbar
+                    toggleSidebar={toggleSidebar}
+                />
             </header>
 
-            {/* Sidebar */}
+
+            {/* ======================================
+                SIDEBAR
+            ====================================== */}
+
             <aside
                 className={`
                     fixed
@@ -44,10 +255,16 @@ const LikedVideos = () => {
                     ${isSidebarOpen ? "w-64" : "w-20"}
                 `}
             >
-                <Sidebar isSidebarOpen={isSidebarOpen} />
+                <Sidebar
+                    isSidebarOpen={isSidebarOpen}
+                />
             </aside>
 
-            {/* Main */}
+
+            {/* ======================================
+                MAIN CONTENT
+            ====================================== */}
+
             <main
                 className={`
                     absolute
@@ -61,66 +278,137 @@ const LikedVideos = () => {
                 `}
             >
                 <div className="p-6">
+
                     {/* Header */}
-                    <h1 className="text-2xl font-bold text-gray-900 mb-6">
-                        Liked Videos
-                    </h1>
 
-                    {/* Loading */}
+                    <div className="flex items-center justify-between mb-6">
+
+                        <h1 className="text-2xl font-bold text-gray-900">
+                            Liked Videos
+                        </h1>
+
+                        {!isLikedVideosLoading && (
+                            <span className="text-sm text-gray-500">
+                                {videoList.length}{" "}
+                                {videoList.length === 1
+                                    ? "video"
+                                    : "videos"}
+                            </span>
+                        )}
+
+                    </div>
+
+
+                    {/* ======================================
+                        LOADING SKELETON
+                    ====================================== */}
+
                     {isLikedVideosLoading && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                                <div key={i} className="animate-pulse">
-                                    <div className="aspect-video bg-gray-200 rounded-xl" />
-                                    <div className="flex gap-3 mt-3">
-                                        <div className="w-10 h-10 rounded-full bg-gray-200" />
-                                        <div className="flex-1 space-y-2">
-                                            <div className="h-4 bg-gray-200 rounded w-full" />
-                                            <div className="h-3 bg-gray-200 rounded w-2/3" />
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                        <LoadingCards count={8} />
                     )}
 
-                    {/* Error */}
-                    {!isLikedVideosLoading && likedVideosError && (
-                        <div className="text-center py-10">
-                            <p className="text-red-500">{likedVideosError}</p>
-                        </div>
-                    )}
 
-                    {/* Empty state */}
+                    {/* ======================================
+                        ERROR
+                    ====================================== */}
+
                     {!isLikedVideosLoading &&
-                        !likedVideosError &&
-                        likedVideos.length === 0 && (
-                            <div className="flex flex-col items-center justify-center py-20">
-                                <Video size={80} className="text-gray-300 mb-4" />
-                                <h3 className="font-semibold text-xl text-gray-800">
-                                    No videos liked
-                                </h3>
-                                <p className="text-gray-500 mt-2">
-                                    Videos you like will appear here.
+                        likedVideosError && (
+                            <div
+                                className="
+                                    flex
+                                    flex-col
+                                    items-center
+                                    justify-center
+                                    py-20
+                                "
+                            >
+
+                                <p className="text-red-500 text-center">
+                                    {likedVideosError}
                                 </p>
+
+                                <button
+                                    type="button"
+                                    onClick={getLikedVideos}
+                                    className="
+                                        mt-4
+                                        px-5
+                                        py-2
+                                        bg-black
+                                        text-white
+                                        rounded-lg
+                                        hover:bg-gray-800
+                                        transition
+                                        cursor-pointer
+                                    "
+                                >
+                                    Try Again
+                                </button>
+
                             </div>
                         )}
 
-                    {/* Liked Videos */}
+
+                    {/* ======================================
+                        EMPTY STATE
+                    ====================================== */}
+
                     {!isLikedVideosLoading &&
                         !likedVideosError &&
-                        likedVideos.length > 0 && (
+                        videoList.length === 0 && (
+                            <div
+                                className="
+                                    flex
+                                    flex-col
+                                    items-center
+                                    justify-center
+                                    py-20
+                                    text-center
+                                "
+                            >
+
+                                <Video
+                                    size={80}
+                                    className="text-gray-300 mb-4"
+                                />
+
+                                <h3
+                                    className="
+                                        font-semibold
+                                        text-xl
+                                        text-gray-800
+                                    "
+                                >
+                                    No videos liked
+                                </h3>
+
+                                <p className="text-gray-500 mt-2">
+                                    Videos you like will appear here.
+                                </p>
+
+                            </div>
+                        )}
+
+
+                    {/* ======================================
+                        LIKED VIDEOS
+                    ====================================== */}
+
+                    {!isLikedVideosLoading &&
+                        !likedVideosError &&
+                        videoList.length > 0 && (
                             <div
                                 className="
                                     grid
                                     grid-cols-1
                                     sm:grid-cols-2
                                     lg:grid-cols-3
-                                    xl:grid-cols-4
-                                    gap-4
+                                    xl:grid-cols-3
+                                    gap-1
                                 "
                             >
-                                {likedVideos.map((video) => (
+                                {videoList.map((video) => (
                                     <HomePageCard
                                         key={video._id}
                                         video={video}
@@ -128,10 +416,13 @@ const LikedVideos = () => {
                                 ))}
                             </div>
                         )}
+
                 </div>
             </main>
+
         </div>
     );
 };
+
 
 export default LikedVideos;

@@ -2,11 +2,9 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import useVideoStore from "../../store/videoStore";
 import axiosInstance from "../../api/axiosInstance";
-import useAuthStore from "../../store/authStore";
 
 const HomePageCard = ({ video }) => {
     const navigate = useNavigate();
-    const { authUser } = useAuthStore();
     const openSelectedVideo = useVideoStore(
         (state) => state.openSelectedVideo
     );
@@ -131,13 +129,13 @@ const HomePageCard = ({ video }) => {
 
 
     return (
-        <div className="group w-full rounded-2xl text-left transition duration-200 p-3 cursor-pointer hover:bg-gray-200">
-            <div className="w-full ">
+        <div className="group w-full rounded-2xl cursor-pointer text-left transition duration-200 p-3 hover:bg-gray-200">
+            <div className="w-full">
                 {/* Thumbnail - click to open video */}
                 <button
                     type="button"
                     onClick={handleOpenVideo}
-                    className="block w-full cursor-pointer"
+                    className="block cursor-pointer w-full"
                 >
                     <div className="relative w-full aspect-video overflow-hidden rounded-2xl bg-gray-200">
                         <img
@@ -154,33 +152,14 @@ const HomePageCard = ({ video }) => {
 
                 {/* Info row */}
                 <div className="mt-3 flex gap-3">
-                    {/* Avatar - click to open channel */}
-                    <button
-                        type="button"
-                        onClick={(e) => {
-                            e.stopPropagation();
+                   
 
-                            if (video.owner.username === authUser?.username) {
-                                navigate("/profile");
-                            } else {
-                                navigate(`/channel/${video.owner.username}`);
-                            }
-                        }}
-                        className="flex-shrink-0 cursor-pointer"
-                    >
-                        <img
-                            src={video.owner?.avatar || "/default-avatar.png"}
-                            alt={video.owner?.fullName || "User"}
-                            className="h-9 w-9 rounded-full object-cover border border-gray-200 hover:opacity-80 transition"
-                        />
-                    </button>
-
-                    <div className="min-w-0 flex-1">
+                    <div className="min-w-0 pl-2 flex-1">
                         {/* Title - click to open video */}
                         <button
                             type="button"
                             onClick={handleOpenVideo}
-                            className="block w-full text-left cursor-pointer"
+                            className="block cursor-pointer w-full text-left"
                         >
                             <h3 className="line-clamp-2 text-[15px] font-medium leading-5 text-gray-900">
                                 {video.title}
@@ -188,18 +167,9 @@ const HomePageCard = ({ video }) => {
                         </button>
 
                         {/* Channel name - click to open channel */}
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/channel/${video.owner.username}`);
-                            }}
-                            className="mt-1 text-sm cursor-pointer text-gray-600 hover:text-gray-900"
-                        >
-                            {video.owner.fullName}
-                        </button>
+                        
 
-                        <div className="mt-1 flex flex-wrap items-center gap-1 text-xs text-gray-500">
+                        <div className="mt-1 pl-1 flex flex-wrap items-center gap-1 text-xs text-gray-500 ">
                             <span>{video.views} views</span>
                             <span>•</span>
                             <span>{formatUploadDate(video.createdAt)}</span>

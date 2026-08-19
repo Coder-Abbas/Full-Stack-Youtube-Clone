@@ -559,6 +559,11 @@ const getViews = asyncHandler(async (req, res) => {
 
 const getMyVideos = asyncHandler(async (req, res) => {
 
+    const userId = req.user?._id;
+    if(!userId || !isValidObjectId(userId)) {
+        throw new APIError(400, "Invalid user ID");
+    }
+
     const videos = await Video.find({
         owner: req.user._id
     })
@@ -586,10 +591,11 @@ const getMyVideos = asyncHandler(async (req, res) => {
 export {
     uploadvideo,
     isPublished,
+    getMyVideos,
     getAllPublishedVideos,
     getSelectedVideo,
     deleteVideo,
     updateVideo,
-    getViews,
-    getMyVideos
+    getViews
+    
 }
