@@ -4,7 +4,7 @@ import { Video, Settings, PlayCircle } from "lucide-react";
 
 import Navbar from "../components/navbar/navbar";
 import Sidebar from "../components/sidebar";
-import ProfileVideoCard from "../components/videoCards/ProfileVideoCard";
+import ProfileVideoCard from "../components/videoCards/homePageCard";
 import ProfileSkeleton from "../components/ProfileSkeleton";
 import useChannelStore from "../store/channelStore";
 
@@ -94,11 +94,10 @@ const Profile = () => {
                     <div className="flex gap-6 mt-10 border-b border-gray-200 pb-3">
                         <button
                             onClick={() => setActiveTab("videos")}
-                            className={`pb-1 font-medium ${
-                                activeTab === "videos"
+                            className={`pb-1 font-medium ${activeTab === "videos"
                                     ? "text-gray-900 border-b-2 border-gray-900"
                                     : "text-gray-500 hover:text-gray-900"
-                            }`}
+                                }`}
                         >
                             Videos
                         </button>
@@ -130,7 +129,7 @@ const Profile = () => {
                             <p className="text-gray-500 mt-2">Upload your first video.</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mt-6 max-h-[600px] overflow-y-auto pr-2">
                             {channelVideos.map((video) => (
                                 <ProfileVideoCard
                                     key={video._id}

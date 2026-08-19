@@ -14,7 +14,6 @@ import { Subscription } from "../models/subscription.models.js";
 
 
 
-
 const deletepicold = async (imageUrl) => {
     try {
         const publicId = imageUrl
@@ -226,7 +225,7 @@ const getSelectedVideo = asyncHandler(async (req, res) => {
     // 2. Validate video ID
     // ==========================================
 
-    if (!isValidObjectId(videoId)) {
+    if (!videoId || !isValidObjectId(videoId)) {
         throw new APIError(
             400,
             "Invalid video ID"
