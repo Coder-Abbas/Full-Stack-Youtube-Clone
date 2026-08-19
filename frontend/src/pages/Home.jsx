@@ -9,48 +9,62 @@ import useVideoStore from "../store/videoStore";
 
 
 const Home = () => {
-  const [isSidebarOpen, setIsSidebarOpen] =
-    useState(true);
 
-  const {
-    videos,
-    isLoading,
-    error,
-    getVideos,
-  } = useVideoStore();
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  const toggleSidebar = () => {
-
-    setIsSidebarOpen((prev) => !prev);
-
-  };
+    const {
+        videos,
+        isLoading,
+        error,
+        getVideos,
+        videoPublishedVersion,
+    } = useVideoStore();
 
 
+    // ==========================================
+    // Sidebar
+    // ==========================================
 
-  useEffect(() => {
-
-    getVideos();
-
-  }, [getVideos]);
-
-
-  // ==========================================
-  // Safety
-  // ==========================================
-
-  const videoList = Array.isArray(videos)
-    ? videos
-    : [];
-
-  const visibleVideos = videoList.slice(0, 6);
+    const toggleSidebar = () => {
+        setIsSidebarOpen((prev) => !prev);
+    };
 
 
-  return (
+    // ==========================================
+    // Initial videos
+    // ==========================================
 
-    <div className="h-screen overflow-hidden bg-gray-50">
+    // Initial load + refresh when a video is published
+    useEffect(() => {
 
-      <header
-        className="
+        getVideos();
+
+    }, [getVideos, videoPublishedVersion]);
+
+
+    // ==========================================
+    // Safety
+    // ==========================================
+
+    const videoList = Array.isArray(videos)
+        ? videos
+        : [];
+
+
+    const visibleVideos = videoList.slice(0, 6);
+
+
+    return (
+
+        <div className="h-screen overflow-hidden bg-gray-50">
+
+
+            {/* ==========================================
+                NAVBAR
+            ========================================== */}
+
+            <header
+                className="
                     fixed
                     top-0
                     left-0
@@ -58,21 +72,21 @@ const Home = () => {
                     z-50
                     h-16
                 "
-      >
+            >
 
-        <Navbar
-          toggleSidebar={toggleSidebar}
-        />
+                <Navbar
+                    toggleSidebar={toggleSidebar}
+                />
 
-      </header>
+            </header>
 
 
-      {/* ================================================= */}
-      {/* SIDEBAR */}
-      {/* ================================================= */}
+            {/* ==========================================
+                SIDEBAR
+            ========================================== */}
 
-      <aside
-        className={`
+            <aside
+                className={`
                     fixed
                     left-0
                     top-16
@@ -82,25 +96,25 @@ const Home = () => {
                     duration-300
 
                     ${isSidebarOpen
-            ? "w-64"
-            : "w-20"
-          }
+                        ? "w-64"
+                        : "w-20"
+                    }
                 `}
-      >
+            >
 
-        <Sidebar
-          isSidebarOpen={isSidebarOpen}
-        />
+                <Sidebar
+                    isSidebarOpen={isSidebarOpen}
+                />
 
-      </aside>
+            </aside>
 
 
-      {/* ================================================= */}
-      {/* MAIN CONTENT */}
-      {/* ================================================= */}
+            {/* ==========================================
+                MAIN
+            ========================================== */}
 
-      <main
-        className={`
+            <main
+                className={`
                     absolute
                     top-16
                     bottom-0
@@ -110,76 +124,76 @@ const Home = () => {
                     duration-300
 
                     ${isSidebarOpen
-            ? "left-54"
-            : "left-20"
-          }
+                        ? "left-64"
+                        : "left-20"
+                    }
                 `}
-      >
+            >
 
-        <div className="p-6">
-
-
-          {/* ================================================= */}
-          {/* LOADING */}
-          {/* ================================================= */}
-
-          {isLoading && (
-
-            <LoadingCards />
-
-          )}
+                <div className="p-6">
 
 
-          {/* ================================================= */}
-          {/* ERROR */}
-          {/* ================================================= */}
+                    {/* ==========================================
+                        LOADING
+                    ========================================== */}
 
-          {!isLoading && error && (
+                    {isLoading && (
 
-            <div className="flex justify-center py-10">
+                        <LoadingCards />
 
-              <p className="text-red-500">
-
-                {error}
-
-              </p>
-
-            </div>
-
-          )}
+                    )}
 
 
-          {/* ================================================= */}
-          {/* EMPTY */}
-          {/* ================================================= */}
+                    {/* ==========================================
+                        ERROR
+                    ========================================== */}
 
-          {!isLoading &&
-            !error &&
-            visibleVideos.length === 0 && (
+                    {!isLoading && error && (
 
-              <div className="text-center py-10">
+                        <div className="flex justify-center py-10">
 
-                <p className="text-gray-500">
+                            <p className="text-red-500">
 
-                  No videos found.
+                                {error}
 
-                </p>
+                            </p>
 
-              </div>
+                        </div>
 
-            )}
+                    )}
 
 
-          {/* ================================================= */}
-          {/* VIDEOS */}
-          {/* ================================================= */}
+                    {/* ==========================================
+                        EMPTY
+                    ========================================== */}
 
-          {!isLoading &&
-            !error &&
-            visibleVideos.length > 0 && (
+                    {!isLoading &&
+                        !error &&
+                        visibleVideos.length === 0 && (
 
-              <div
-                className=" 
+                            <div className="text-center py-10">
+
+                                <p className="text-gray-500">
+
+                                    No videos found.
+
+                                </p>
+
+                            </div>
+
+                        )}
+
+
+                    {/* ==========================================
+                        VIDEOS
+                    ========================================== */}
+
+                    {!isLoading &&
+                        !error &&
+                        visibleVideos.length > 0 && (
+
+                            <div
+                                className="
                                     grid
                                     grid-cols-1
                                     sm:grid-cols-2
@@ -188,27 +202,29 @@ const Home = () => {
                                     gap-x-0
                                     gap-y-2
                                 "
-              >
+                            >
 
-                {visibleVideos.map((video) => (
+                                {visibleVideos.map((video) => (
 
-                  <HomePageCard
-                    key={video._id}
-                    video={video}
-                  />
+                                    <HomePageCard
+                                        key={video._id}
+                                        video={video}
+                                    />
 
-                ))}
+                                ))}
 
-              </div>
+                            </div>
 
-            )}
+                        )}
+
+                </div>
+
+            </main>
 
         </div>
 
-      </main>
+    );
 
-    </div>
-  );
 };
 
 

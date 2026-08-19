@@ -4,7 +4,7 @@ import axiosInstance from "../api/axiosInstance";
 import useVideoStore from "../store/videoStore";
 
 const UploadVideoModal = ({ onClose }) => {
-    const getVideos = useVideoStore((state) => state.getVideos);
+    const publishVideo = useVideoStore((state) => state.publishVideo);
     const [step, setStep] = useState(1);
     const [videoFile, setVideoFile] = useState(null);
     const [thumbnailFile, setThumbnailFile] = useState(null);
@@ -18,12 +18,20 @@ const UploadVideoModal = ({ onClose }) => {
     const [isPublishing, setIsPublishing] = useState(false);
     const [error, setError] = useState(null);
 
+
     // Handle video file selection
     const handleVideoChange = (e) => {
         const file = e.target.files[0];
         if (file) {
             setVideoFile(file);
             setVideoPreview(URL.createObjectURL(file));
+        }
+    };
+
+    // Close modal when clicking outside
+    const handleOutsideClick = (e) => {
+        if (e.target === e.currentTarget) {
+            onClose();
         }
     };
 
@@ -71,17 +79,21 @@ const UploadVideoModal = ({ onClose }) => {
             formData.append("title", title);
             formData.append("description", description);
 
-            const response = await axiosInstance.post("/videos/upload", formData, {
-                headers: {
-                    "Content-Type": "multipart/form-data",
-                },
-                onUploadProgress: (progressEvent) => {
-                    const percent = Math.round(
-                        (progressEvent.loaded * 100) / progressEvent.total
-                    );
-                    setUploadProgress(percent);
-                },
-            });
+            const response = await axiosInstance.post(
+                "/videos/upload",
+                formData,
+                {
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                    },
+                    onUploadProgress: (progressEvent) => {
+                        const percent = Math.round(
+                            (progressEvent.loaded * 100) / progressEvent.total
+                        );
+                        setUploadProgress(percent);
+                    },
+                }
+            );
 
             setUploadedVideo(response.data.data);
             setUploadProgress(100);
@@ -100,23 +112,40 @@ const UploadVideoModal = ({ onClose }) => {
         setIsPublishing(true);
 
         try {
-            if (uploadedVideo?._id) {
-                await axiosInstance.patch(`/videos/toggle/publish/${uploadedVideo._id}`);
+            if (!uploadedVideo?._id) {
+                throw new Error("Video ID is missing");
             }
+
+            const result = await publishVideo(uploadedVideo._id);
+
+            if (!result.success) {
+                throw new Error(result.message);
+            }
+
             setIsPublishing(false);
-            // Refresh videos after publish
-            getVideos();
+
+            // Close modal
             onClose();
+
         } catch (err) {
             console.error("Publish error:", err);
-            setError(err.response?.data?.message || "Failed to publish video");
+
+            setError(
+                err?.message ||
+                err?.response?.data?.message ||
+                "Failed to publish video"
+            );
+
             setIsPublishing(false);
         }
     };
 
     return (
-        <div className="fixed inset-0 z-[200] bg-black/60 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div
+            className="fixed inset-0 z-[200] bg-black/60 flex items-center justify-center p-4 cursor-pointer"
+            onClick={handleOutsideClick}
+        >
+            <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl cursor-default">
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
                     <h2 className="text-xl font-bold text-gray-900">Upload Video</h2>
@@ -134,18 +163,16 @@ const UploadVideoModal = ({ onClose }) => {
                     {[1, 2, 3].map((s) => (
                         <div key={s} className="flex items-center gap-2">
                             <div
-                                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                                    step >= s
-                                        ? "bg-blue-600 text-white"
-                                        : "bg-gray-200 text-gray-500"
-                                }`}
+                                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step >= s
+                                    ? "bg-blue-600 text-white"
+                                    : "bg-gray-200 text-gray-500"
+                                    }`}
                             >
                                 {step > s ? <CheckCircle size={16} /> : s}
                             </div>
                             <span
-                                className={`text-sm ${
-                                    step >= s ? "text-gray-900 font-medium" : "text-gray-400"
-                                }`}
+                                className={`text-sm ${step >= s ? "text-gray-900 font-medium" : "text-gray-400"
+                                    }`}
                             >
                                 {s === 1 ? "Details" : s === 2 ? "Upload" : "Publish"}
                             </span>
@@ -180,7 +207,7 @@ const UploadVideoModal = ({ onClose }) => {
                                             setVideoFile(null);
                                             setVideoPreview("");
                                         }}
-                                        className="absolute top-2 right-2 p-2 bg-black/70 text-white rounded-full hover:bg-black"
+                                        className="absolute top-2 right-2 p-2 bg-black/70 text-white rounded-full hover:bg-black cursor-pointer"
                                     >
                                         <X size={16} />
                                     </button>
@@ -215,7 +242,7 @@ const UploadVideoModal = ({ onClose }) => {
                                             setThumbnailFile(null);
                                             setThumbnailPreview("");
                                         }}
-                                        className="absolute top-2 right-2 p-2 bg-black/70 text-white rounded-full hover:bg-black"
+                                        className="absolute top-2 right-2 p-2 bg-black/70 text-white rounded-full hover:bg-black cursor-pointer"
                                     >
                                         <X size={16} />
                                     </button>
@@ -263,7 +290,7 @@ const UploadVideoModal = ({ onClose }) => {
                             <button
                                 type="button"
                                 onClick={handleNext}
-                                className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-full font-medium hover:bg-blue-700 transition"
+                                className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-full font-medium hover:bg-blue-700 transition cursor-pointer"
                             >
                                 Next
                                 <ChevronRight size={18} />
@@ -304,7 +331,7 @@ const UploadVideoModal = ({ onClose }) => {
                                 type="button"
                                 onClick={() => setStep(1)}
                                 disabled={isUploading}
-                                className="flex items-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-full font-medium hover:bg-gray-200 disabled:opacity-50"
+                                className="flex items-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-full font-medium hover:bg-gray-200 disabled:opacity-50 cursor-pointer"
                             >
                                 <ChevronLeft size={18} />
                                 Back
@@ -313,7 +340,7 @@ const UploadVideoModal = ({ onClose }) => {
                                 type="button"
                                 onClick={handleUpload}
                                 disabled={isUploading}
-                                className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-full font-medium hover:bg-blue-700 disabled:opacity-50"
+                                className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-full font-medium hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
                             >
                                 {isUploading ? (
                                     <>
@@ -368,7 +395,7 @@ const UploadVideoModal = ({ onClose }) => {
                                 type="button"
                                 onClick={() => setStep(2)}
                                 disabled={isPublishing}
-                                className="flex items-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-full font-medium hover:bg-gray-200 disabled:opacity-50"
+                                className="flex items-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-full font-medium hover:bg-gray-200 disabled:opacity-50 cursor-pointer"
                             >
                                 <ChevronLeft size={18} />
                                 Back
@@ -377,7 +404,7 @@ const UploadVideoModal = ({ onClose }) => {
                                 type="button"
                                 onClick={handlePublish}
                                 disabled={isPublishing}
-                                className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-full font-medium hover:bg-green-700 disabled:opacity-50"
+                                className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-full font-medium hover:bg-green-700 disabled:opacity-50 cursor-pointer"
                             >
                                 {isPublishing ? (
                                     <>

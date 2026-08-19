@@ -10,7 +10,7 @@ const toHttps = (url = "") => {
     return url.startsWith("http://") ? url.replace("http://", "https://") : url;
 };
 
-const useVideoStore = create((set) => ({
+const useVideoStore = create((set, get) => ({
     
     videos: [],
 
@@ -18,6 +18,44 @@ const useVideoStore = create((set) => ({
 
     error: null,
 
+    // Used to notify other components that a new video was published
+    videoPublishedVersion: 0,
+
+    notifyVideoPublished: () => {
+        set((state) => ({
+            videoPublishedVersion: state.videoPublishedVersion + 1,
+        }));
+    },
+
+    publishVideo: async (videoId) => {
+        try {
+            const response = await axiosInstance.patch(
+                `/videos/toggle/publish/${videoId}`
+            );
+
+            const publishedVideo = response?.data?.data;
+
+            // Notify Home and other pages
+            if (publishedVideo?.isPublished) {
+                get().notifyVideoPublished();
+            }
+
+            return {
+                success: true,
+                data: publishedVideo,
+            };
+
+        } catch (error) {
+            console.error("Publish video error:", error);
+
+            return {
+                success: false,
+                message:
+                    error?.response?.data?.message ||
+                    "Failed to publish video",
+            };
+        }
+    },
 
     selectedVideoId: null,
 
@@ -87,7 +125,6 @@ const useVideoStore = create((set) => ({
         }
     },
 
-
     // ==========================================
     // Liked Videos
     // ==========================================
@@ -141,7 +178,7 @@ const useVideoStore = create((set) => ({
 
         } catch (error) {
 
-            
+
 
             set({
                 likedVideosError:
@@ -314,11 +351,11 @@ const useVideoStore = create((set) => ({
                 isLiked: liked,
                 selectedVideo: prev.selectedVideo
                     ? {
-                          ...prev.selectedVideo,
-                          likesCount: liked
-                              ? prev.selectedVideo.likesCount + 1
-                              : Math.max(0, prev.selectedVideo.likesCount - 1),
-                      }
+                        ...prev.selectedVideo,
+                        likesCount: liked
+                            ? prev.selectedVideo.likesCount + 1
+                            : Math.max(0, prev.selectedVideo.likesCount - 1),
+                    }
                     : prev.selectedVideo,
             }));
 
@@ -402,14 +439,14 @@ const useVideoStore = create((set) => ({
                 comments: prev.comments.map((c) =>
                     c._id === commentId
                         ? {
-                              ...updatedComment,
-                              owner: {
-                                  ...updatedComment.owner,
-                                  avatar: toHttps(
-                                      updatedComment.owner?.avatar
-                                  ),
-                              },
-                          }
+                            ...updatedComment,
+                            owner: {
+                                ...updatedComment.owner,
+                                avatar: toHttps(
+                                    updatedComment.owner?.avatar
+                                ),
+                            },
+                        }
                         : c
                 ),
             }));
@@ -484,12 +521,12 @@ const useVideoStore = create((set) => ({
                 comments: prev.comments.map((c) =>
                     c._id === commentId
                         ? {
-                              ...c,
-                              isLiked: liked,
-                              commentLikesCount: liked
-                                  ? (c.commentLikesCount || 0) + 1
-                                  : Math.max(0, (c.commentLikesCount || 0) - 1),
-                          }
+                            ...c,
+                            isLiked: liked,
+                            commentLikesCount: liked
+                                ? (c.commentLikesCount || 0) + 1
+                                : Math.max(0, (c.commentLikesCount || 0) - 1),
+                        }
                         : c
                 ),
             }));

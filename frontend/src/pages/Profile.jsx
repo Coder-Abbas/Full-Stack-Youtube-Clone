@@ -67,11 +67,14 @@ const Profile = () => {
     };
 
     useEffect(() => {
+        // Only fetch channel data if user is logged in
+        if (!authUser || isCheckingAuth) return;
+
         getMyChannel();
         getMyVideos();
         setTotalSubscribers(subscribersCount || 0);
         setTotalVideos(channelVideos?.length || 0);
-    }, [getMyChannel, getMyVideos, subscribersCount, channelVideos]);
+    }, [getMyChannel, getMyVideos, subscribersCount, channelVideos, authUser, isCheckingAuth]);
 
     // Search videos
     const filteredVideos = useMemo(() => {
@@ -721,10 +724,9 @@ const Profile = () => {
 
                     {/* ================= ERROR ================= */}
                     {error && (
-                        toast.error(error, {
-                            position: "top-right",
-                            autoClose: 5000,
-                        })
+                        <div className="flex justify-center py-4">
+                            <p className="text-red-500">{error}</p>
+                        </div>
                     )}
                 </div>
             </main>

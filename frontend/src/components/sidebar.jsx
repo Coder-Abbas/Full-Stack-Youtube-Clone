@@ -8,14 +8,22 @@ import {
     PlaySquare,
     Clock,
     ListVideo,
-    ChevronRight,
+    Settings,
+    LogIn,
 } from "lucide-react";
 
-const Sidebar = ({ isSidebarOpen }) => {
+import useAuthStore from "../store/authStore";
 
+const Sidebar = ({ isSidebarOpen }) => {
     const location = useLocation();
 
-    const menuItems = [
+    const { authUser, isCheckingAuth } = useAuthStore();
+
+    // ==========================================
+    // Main menu for logged-in users
+    // ==========================================
+
+    const authenticatedMenuItems = [
         {
             name: "Home",
             path: "/",
@@ -43,10 +51,93 @@ const Sidebar = ({ isSidebarOpen }) => {
         },
     ];
 
+    // ==========================================
+    // Secondary menu
+    // ==========================================
+
+    const secondaryMenuItems = [
+        {
+            name: "Playlists",
+            path: "/playlists",
+            icon: ListVideo,
+        },
+        {
+            name: "Watch Later",
+            path: "/watch-later",
+            icon: Clock,
+        },
+    ];
+
+    // ==========================================
+    // Check active route
+    // ==========================================
+
+    const isActiveRoute = (path) => {
+        if (path === "/") {
+            return location.pathname === "/";
+        }
+
+        return location.pathname === path;
+    };
+
+    // ==========================================
+    // Menu item component
+    // ==========================================
+
+    const MenuItem = ({ item }) => {
+        const Icon = item.icon;
+        const isActive = isActiveRoute(item.path);
+
+        return (
+            <Link
+                to={item.path}
+                className={`
+                    group
+                    flex
+                    items-center
+                    ${isSidebarOpen
+                        ? "gap-5 px-4"
+                        : "justify-center px-2"
+                    }
+                    py-3
+                    rounded-xl
+                    cursor-pointer
+                    transition-all
+                    duration-200
+
+                    ${
+                        isActive
+                            ? "bg-gray-100 text-black font-semibold"
+                            : "text-gray-700 hover:bg-gray-100 hover:text-black"
+                    }
+                `}
+            >
+                <Icon
+                    size={22}
+                    strokeWidth={isActive ? 2.5 : 2}
+                    className="
+                        flex-shrink-0
+                        transition-transform
+                        duration-200
+                        group-hover:scale-110
+                    "
+                />
+
+                {isSidebarOpen && (
+                    <span className="text-sm whitespace-nowrap">
+                        {item.name}
+                    </span>
+                )}
+            </Link>
+        );
+    };
+
+ 
+
     return (
         <aside
             className={`
-                h-screen
+                h-full
                 flex-shrink-0
                 bg-white
                 border-r
@@ -57,148 +148,135 @@ const Sidebar = ({ isSidebarOpen }) => {
                 ${isSidebarOpen ? "w-58" : "w-20"}
             `}
         >
-
             <div className="h-full overflow-y-auto px-3 py-4">
 
-                {/* Main Menu */}
+                {/* ==========================================
+                    HOME
+                ========================================== */}
+
                 <div className="space-y-1">
 
-                    {menuItems.map((item) => {
+                    <MenuItem
+                        item={{
+                            name: "Home",
+                            path: "/",
+                            icon: Home,
+                        }}
+                    />
 
-                        const Icon = item.icon;
+                </div>
 
-                        const isActive =
-                            location.pathname === item.path;
+                {/* ==========================================
+                    AUTHENTICATED USER MENU
+                ========================================== */}
 
-                        return (
-                            <Link
-                                key={item.path}
-                                to={item.path}
-                                className={`
-                                    group
-                                    flex
-                                    items-center
-                                    ${isSidebarOpen ? "gap-5 px-4" : "justify-center px-2"}
-                                    py-3
-                                    rounded-xl
-                                    cursor-pointer
-                                    transition-all
-                                    duration-200
+                {authUser && (
+                    <>
+                        {/* Main Menu */}
 
-                                    ${isActive
-                                        ? "bg-gray-100 text-black font-semibold"
-                                        : "text-gray-700 hover:bg-gray-100 hover:text-black"
-                                    }
-                                `}
-                            >
+                        <div className="mt-2 space-y-1">
 
-                                <Icon
-                                    size={22}
-                                    strokeWidth={isActive ? 2.5 : 2}
-                                    className="
-                                        flex-shrink-0
-                                        transition-transform
-                                        duration-200
-                                        group-hover:scale-110
-                                    "
+                            {authenticatedMenuItems
+                                .filter((item) => item.path !== "/")
+                                .map((item) => (
+                                    <MenuItem
+                                        key={item.path}
+                                        item={item}
+                                    />
+                                ))}
+                        </div>
+
+                        {/* Divider */}
+
+                        <div className="my-4 border-t border-gray-200" />
+
+                        {/* Secondary Menu */}
+
+                        <div className="space-y-1">
+
+                            {secondaryMenuItems.map((item) => (
+                                <MenuItem
+                                    key={item.path}
+                                    item={item}
                                 />
+                            ))}
 
-                                {/* Text */}
-                                {isSidebarOpen && (
-                                    <span className="text-sm whitespace-nowrap">
-                                        {item.name}
-                                    </span>
-                                )}
+                        </div>
 
-                            </Link>
-                        );
-                    })}
+                        {/* Divider */}
 
-                </div>
+                        <div className="my-4 border-t border-gray-200" />
 
-                {/* Divider */}
-                <div className="my-4 border-t border-gray-200"></div>
+                        {/* Settings */}
 
+                        <div className="space-y-1">
 
-                {/* Secondary Menu */}
-                <div className="space-y-1">
+                            <MenuItem
+                                item={{
+                                    name: "Settings",
+                                    path: "/settings",
+                                    icon: Settings,
+                                }}
+                            />
 
-                    <Link
-                        to="/playlists"
-                        className={`
-                            group
-                            flex
-                            items-center
-                            ${isSidebarOpen ? "gap-5 px-4" : "justify-center px-2"}
-                            py-3
-                            rounded-xl
-                            text-gray-700
-                            hover:bg-gray-100
-                            hover:text-black
-                            cursor-pointer
-                            transition-all
-                            duration-200
-                        `}
-                    >
+                        </div>
+                    </>
+                )}
 
-                        <ListVideo
-                            size={22}
+                {/* ==========================================
+                    NOT LOGGED IN
+                ========================================== */}
+
+                {!authUser && (
+                    <>
+                        {/* Divider */}
+
+                        <div className="my-4 border-t border-gray-200" />
+
+                        {/* Login */}
+
+                        <Link
+                            to="/login"
                             className="
-                                flex-shrink-0
-                                transition-transform
+                                group
+                                flex
+                                items-center
+                                justify-center
+                                gap-3
+                                w-full
+                                py-2.5
+                                px-3
+                                rounded-xl
+                                border
+                                border-blue-500
+                                text-blue-500
+                                font-medium
+                                transition-all
                                 duration-200
-                                group-hover:scale-110
+                                hover:bg-blue-500
+                                hover:text-white
                             "
-                        />
+                        >
+                            <LogIn
+                                size={21}
+                                className="
+                                    flex-shrink-0
+                                    transition-transform
+                                    duration-200
+                                    group-hover:scale-110
+                                "
+                            />
 
-                        {isSidebarOpen && (
-                            <span className="text-sm whitespace-nowrap">
-                                Playlists
-                            </span>
-                        )}
-
-                    </Link>
-
-                    <Link
-                        to="/watch-later"
-                        className={`
-                            group
-                            flex
-                            items-center
-                            ${isSidebarOpen ? "gap-5 px-4" : "justify-center px-2"}
-                            py-3
-                            rounded-xl
-                            text-gray-700
-                            hover:bg-gray-100
-                            hover:text-black
-                            cursor-pointer
-                            transition-all
-                            duration-200
-                        `}
-                    >
-
-                        <Clock
-                            size={22}
-                            className="
-                                flex-shrink-0
-                                transition-transform
-                                duration-200
-                                group-hover:scale-110
-                            "
-                        />
-
-                        {isSidebarOpen && (
-                            <span className="text-sm whitespace-nowrap">
-                                Watch Later
-                            </span>
-                        )}
-
-                    </Link>
-
-                </div>
+                            {isSidebarOpen && (
+                                <span className="text-sm">
+                                    Login
+                                </span>
+                            )}
+                        </Link>
+                    </>
+                )}
 
             </div>
-
         </aside>
     );
 };
