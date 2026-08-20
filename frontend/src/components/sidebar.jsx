@@ -36,7 +36,7 @@ const Sidebar = ({ isSidebarOpen }) => {
         },
         {
             name: "Subscriptions",
-            path: "/subscriptions",
+            path: "/subscription",
             icon: PlaySquare,
         },
         {

@@ -49,10 +49,15 @@ const userSchema = new Schema(
         },
         watchHistory: [
             {
-                type: Schema.Types.ObjectId,
-                ref: "Video",
-
-            }
+                video: {
+                    type: Schema.Types.ObjectId,
+                    ref: "Video",
+                },
+                watchedAt: {
+                    type: Date,
+                    default: Date.now,
+                },
+            },
         ],
         password: {
             type: String,
@@ -65,7 +70,6 @@ const userSchema = new Schema(
         }
 
         
-
 
     },
     {

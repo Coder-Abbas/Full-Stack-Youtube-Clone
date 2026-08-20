@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { APIError } from "../utils/APIError.js";
 import { User } from "../models/users.models.js"
@@ -639,28 +640,26 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
 
 
 const getWatchHistory = asyncHandler(async (req, res) => {
-    //actualy mongodb id hame nahi milty. hame string milty hai. aur mongoose automatically convert it to object id. so we can use it directly in the query.
-
-
     //aggregation ka code directly jata hai mongoose nahi karta mtlb id
-    //1. get user used pipelines and add in fields. 
+    //1. get user used pipelines and add in fields.
+
     const user = await User.aggregate(
         [
             {
                 $match: {
-                    _id: req.user?._id
+                    _id: new mongoose.Types.ObjectId(req.user._id)
                 }
             },
             {
                 $lookup: {
-                    from: "Videos",
-                    localField: "watchHistory",
+                    from: "videos",
+                    localField: "watchHistory.video",
                     foreignField: "_id",
                     as: "watchHistory",
                     pipeline: [
                         {
                             $lookup: {
-                                from: "Users",
+                                from: "users",
                                 localField: "owner",
                                 foreignField: "_id",
                                 as: "owner",
@@ -670,7 +669,6 @@ const getWatchHistory = asyncHandler(async (req, res) => {
                                             fullName: 1,
                                             username: 1,
                                             avatar: 1,
-
                                         }
                                     }
                                 ]
@@ -678,16 +676,39 @@ const getWatchHistory = asyncHandler(async (req, res) => {
                         },
                         {
                             $addFields: {
-                                // owner: { $arrayElemAt: ["$owner", 0]}
                                 owner: {
                                     $arrayElemAt: ["$owner", 0]
                                 }
                             }
                         }
                     ]
-
                 }
             },
+            {
+                $addFields: {
+                    watchHistory: {
+                        $map: {
+                            input: "$watchHistory",
+                            as: "video",
+                            in: {
+                                _id: "$$video._id",
+                                videoFile: "$$video.videoFile",
+                                thumbnail: "$$video.thumbnail",
+                                title: "$$video.title",
+                                description: "$$video.description",
+                                duration: "$$video.duration",
+                                views: "$$video.views",
+                                isPublished: "$$video.isPublished",
+                                owner: "$$video.owner",
+                                createdAt: "$$video.createdAt",
+                                updatedAt: "$$video.updatedAt",
+                                __v: "$$video.__v",
+                                watchedAt: "$$video.watchedAt"
+                            }
+                        }
+                    }
+                }
+            }
         ]
     )
 

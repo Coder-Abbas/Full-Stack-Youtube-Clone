@@ -280,6 +280,38 @@ const useVideoStore = create((set, get) => ({
         }
     },
 
+    getWatchHistory: async () => {
+        try {
+
+            set({
+                isLoading: true,
+                error: null,
+            });
+
+            const response = await axiosInstance.get(
+                "/users/history"
+            );
+
+            set({
+                watchHistory: response.data.data,
+                isLoading: false,
+            });
+        } catch (error) {
+            console.error(
+                "Error fetching watch history:",
+                error
+            );
+
+            set({
+                watchHistory: [],
+                isLoading: false,
+                error:
+                    error.response?.data?.message ||
+                    "Failed to fetch watch history",
+            });
+        }
+    },
+
 
     // ==========================================
     // Get Selected Video

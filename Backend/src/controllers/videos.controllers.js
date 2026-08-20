@@ -266,6 +266,31 @@ const getSelectedVideo = asyncHandler(async (req, res) => {
 
 
     // ==========================================
+    // 4b. Add to watch history (logged-in users only)
+    // ==========================================
+
+    if (req.user) {
+        // Remove any existing entry for this video first,
+        // so re-watching moves it back to the top instead
+        // of creating a duplicate
+        await User.findByIdAndUpdate(req.user._id, {
+            $pull: { watchHistory: { video: videoId } }
+        });
+
+        // Push to the front (position 0) since the frontend
+        // will want newest-first ordering
+        await User.findByIdAndUpdate(req.user._id, {
+            $push: {
+                watchHistory: {
+                    $each: [{ video: videoId, watchedAt: new Date() }],
+                    $position: 0
+                }
+            }
+        });
+    }
+
+
+    // ==========================================
     // 5. Check if current user liked video
     // ==========================================
 

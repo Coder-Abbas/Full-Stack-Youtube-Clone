@@ -14,6 +14,8 @@ import { initSocket, disconnectSocket, getSocket } from './api/socket'
 import useAuthStore from './store/authStore'
 import useVideoStore from './store/videoStore'
 import useChannelStore from './store/channelStore'
+import WatchHistory from './pages/watchHistory'
+import Subscription from "./pages/subscription"
 
 const App = () => {
   const { authUser } = useAuthStore();
@@ -128,6 +130,8 @@ const App = () => {
         <Route path="/profile/edit" element={<EditProfile />} />
         <Route path="/channel/:username" element={<ChannelPage />} />
         <Route path="/settings" element={<Setting />} />
+        <Route path="/watch-history" element={<WatchHistory />} />
+        <Route path="/subscription" element={<Subscription />} />
       </Routes>
     </div>
   )

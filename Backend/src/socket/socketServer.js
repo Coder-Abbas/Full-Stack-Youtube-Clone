@@ -4,16 +4,23 @@ import { User } from "../models/users.models.js";
 
 let io = null;
 
-// Map to store userId -> Set of socketIds
-// Map to store socketId -> userId
-const userSockets = new Map(); // userId -> Set of socketIds
-const socketToUser = new Map(); // socketId -> userId
+// ==========================================
+// Connected user tracking
+// ==========================================
 
-/**
- * Create & initialize the Socket.io server
- * @param {http.Server} httpServer - The HTTP server instance
- */
+// userId -> Set of socket IDs
+const userSockets = new Map();
+
+// socketId -> userId
+const socketToUser = new Map();
+
+
+// ==========================================
+// Initialize Socket.IO
+// ==========================================
+
 export const initializeSocketIO = (httpServer) => {
+
     io = new Server(httpServer, {
         cors: {
             origin: [
@@ -21,272 +28,550 @@ export const initializeSocketIO = (httpServer) => {
                 "http://localhost:5173",
                 "http://127.0.0.1:5173",
             ].filter(Boolean),
+
             credentials: true,
         },
     });
 
-    // Authentication middleware for Socket.io (optional auth - allows unauthenticated
-    // connections to receive real-time updates on public rooms)
+
+    // ==========================================
+    // Socket Authentication
+    // ==========================================
+
     io.use(async (socket, next) => {
+
         try {
+
             const token =
                 socket.handshake.auth?.token ||
-                socket.handshake.headers?.authorization?.replace("Bearer ", "") ||
-                null;
+                socket.handshake.headers?.authorization?.replace(
+                    "Bearer ",
+                    ""
+                );
 
+            // Allow guest users
             if (!token) {
-                // Allow unauthenticated connections - they can still join public rooms
+
                 socket.user = null;
                 socket.userId = null;
+
                 return next();
             }
 
-            const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
 
-            const user = await User.findById(decodedToken._id).select(
-                "-password -refreshToken"
+            const decodedToken = jwt.verify(
+                token,
+                process.env.ACCESS_TOKEN_SECRET
             );
 
+
+            const user = await User.findById(
+                decodedToken._id
+            ).select("-password -refreshToken");
+
+
             if (!user) {
+
                 socket.user = null;
                 socket.userId = null;
+
                 return next();
             }
+
 
             socket.user = user;
             socket.userId = user._id.toString();
 
+
             next();
+
         } catch (error) {
-            // Allow connection but don't authenticate
+
+            console.log(
+                "Socket authentication failed:",
+                error.message
+            );
+
+            // Guest connection
             socket.user = null;
             socket.userId = null;
+
             next();
         }
+
     });
 
-    // Connection handler
+
+    // ==========================================
+    // Connection
+    // ==========================================
+
     io.on("connection", (socket) => {
+
         const userId = socket.userId;
 
-        // Register user connection (only for authenticated users)
-        if (userId) {
-            if (!userSockets.has(userId)) {
-                userSockets.set(userId, new Set());
-            }
-            userSockets.get(userId).add(socket.id);
-            socketToUser.set(socket.id, userId);
 
-            // Join a personal room for direct events to this user
+        console.log(
+            `Socket connected: ${socket.id}`,
+            userId
+                ? `User: ${socket.user?.username}`
+                : "Guest"
+        );
+
+
+        // ==========================================
+        // Register authenticated user
+        // ==========================================
+
+        if (userId) {
+
+            if (!userSockets.has(userId)) {
+
+                userSockets.set(
+                    userId,
+                    new Set()
+                );
+
+            }
+
+
+            userSockets
+                .get(userId)
+                .add(socket.id);
+
+
+            socketToUser.set(
+                socket.id,
+                userId
+            );
+
+
+            // Personal room
             socket.join(`user:${userId}`);
+
         }
 
-        console.log(`⚡ User ${socket.user?.username || "anonymous"} connected: ${socket.id}`);
 
-        // Handle joining video rooms (for real-time comments on a video)
-        socket.on("join-video-room", (videoId) => {
-            if (!videoId) return;
-            socket.join(`video:${videoId}`);
-            console.log(`  Socket ${socket.id} joined video room: ${videoId}`);
-        });
+        // ==========================================
+        // Join video room
+        // ==========================================
 
-        // Handle leaving a video room
-        socket.on("leave-video-room", (videoId) => {
-            if (!videoId) return;
-            socket.leave(`video:${videoId}`);
-            console.log(`  Socket ${socket.id} left video room: ${videoId}`);
-        });
+        socket.on(
+            "join-video-room",
+            (videoId) => {
 
-        // Handle subscribing to a channel room (get notifications when channel publishes)
-        socket.on("subscribe-channel", (channelId) => {
-            if (!channelId) return;
-            socket.join(`channel:${channelId}`);
-            console.log(`  Socket ${socket.id} joined channel room: ${channelId}`);
-        });
+                if (!videoId) return;
 
-        // Handle unsubscribing from a channel room
-        socket.on("unsubscribe-channel", (channelId) => {
-            if (!channelId) return;
-            socket.leave(`channel:${channelId}`);
-            console.log(`  Socket ${socket.id} left channel room: ${channelId}`);
-        });
+                socket.join(
+                    `video:${videoId}`
+                );
 
-        // Disconnect handler
-        socket.on("disconnect", (reason) => {
-            console.log(`❌ User ${socket.user?.username || "anonymous"} disconnected: ${socket.id} (${reason})`);
+                console.log(
+                    `${socket.id} joined video:${videoId}`
+                );
 
-            // Clean up mappings (only for authenticated users)
-            if (userId) {
-                const sockets = userSockets.get(userId);
-                if (sockets) {
-                    sockets.delete(socket.id);
-                    if (sockets.size === 0) {
-                        userSockets.delete(userId);
-                    }
-                }
-                socketToUser.delete(socket.id);
             }
-        });
+        );
+
+
+        // ==========================================
+        // Leave video room
+        // ==========================================
+
+        socket.on(
+            "leave-video-room",
+            (videoId) => {
+
+                if (!videoId) return;
+
+                socket.leave(
+                    `video:${videoId}`
+                );
+
+            }
+        );
+
+
+        // ==========================================
+        // Join channel room
+        // ==========================================
+
+        socket.on(
+            "subscribe-channel",
+            (channelId) => {
+
+                if (!channelId) return;
+
+                socket.join(
+                    `channel:${channelId}`
+                );
+
+                console.log(
+                    `${socket.id} joined channel:${channelId}`
+                );
+
+            }
+        );
+
+
+        // ==========================================
+        // Leave channel room
+        // ==========================================
+
+        socket.on(
+            "unsubscribe-channel",
+            (channelId) => {
+
+                if (!channelId) return;
+
+                socket.leave(
+                    `channel:${channelId}`
+                );
+
+            }
+        );
+
+
+        // ==========================================
+        // Disconnect
+        // ==========================================
+
+        socket.on(
+            "disconnect",
+            (reason) => {
+
+                console.log(
+                    `Socket disconnected: ${socket.id}`,
+                    reason
+                );
+
+
+                if (userId) {
+
+                    const sockets =
+                        userSockets.get(userId);
+
+
+                    if (sockets) {
+
+                        sockets.delete(
+                            socket.id
+                        );
+
+
+                        if (sockets.size === 0) {
+
+                            userSockets.delete(
+                                userId
+                            );
+
+                        }
+
+                    }
+
+
+                    socketToUser.delete(
+                        socket.id
+                    );
+
+                }
+
+            }
+        );
+
     });
 
+
+    console.log("Socket.IO initialized successfully");
+
     return io;
 };
 
-/**
- * Get the Socket.io instance
- */
+
+// ==========================================
+// Get Socket.IO instance
+// ==========================================
+
 export const getIO = () => {
+
     if (!io) {
-        throw new Error("Socket.io not initialized");
+
+        throw new Error(
+            "Socket.IO has not been initialized"
+        );
+
     }
+
     return io;
 };
 
-/**
- * Emit a new comment event to everyone watching a video
- * @param {string} videoId - The video ID
- * @param {Object} comment - The comment data
- */
-export const emitNewComment = (videoId, comment) => {
-    if (io) {
-        io.to(`video:${videoId}`).emit("new-comment", { videoId, comment });
-    }
+
+// ==========================================
+// COMMENTS
+// ==========================================
+
+export const emitNewComment = (
+    videoId,
+    comment
+) => {
+
+    if (!io) return;
+
+    io.to(`video:${videoId}`).emit(
+        "new-comment",
+        {
+            videoId,
+            comment,
+        }
+    );
+
 };
 
-/**
- * Emit comment update event
- * @param {string} videoId - The video ID
- * @param {Object} comment - Updated comment data
- */
-export const emitUpdateComment = (videoId, comment) => {
-    if (io) {
-        io.to(`video:${videoId}`).emit("update-comment", { videoId, comment });
-    }
+
+export const emitUpdateComment = (
+    videoId,
+    comment
+) => {
+
+    if (!io) return;
+
+    io.to(`video:${videoId}`).emit(
+        "update-comment",
+        {
+            videoId,
+            comment,
+        }
+    );
+
 };
 
-/**
- * Emit comment delete event
- * @param {string} videoId - The video ID
- * @param {string} commentId - The deleted comment ID
- */
-export const emitDeleteComment = (videoId, commentId) => {
-    if (io) {
-        io.to(`video:${videoId}`).emit("delete-comment", { videoId, commentId });
-    }
+
+export const emitDeleteComment = (
+    videoId,
+    commentId
+) => {
+
+    if (!io) return;
+
+    io.to(`video:${videoId}`).emit(
+        "delete-comment",
+        {
+            videoId,
+            commentId,
+        }
+    );
+
 };
 
-/**
- * Emit video like update event
- * @param {string} videoId - The video ID
- * @param {number} likesCount - Updated likes count
- * @param {boolean} like - Whether it was liked or unliked
- * @param {string} userId - The user who toggled the like
- */
-export const emitVideoLikeUpdate = (videoId, likesCount, like, userId) => {
-    if (io) {
-        io.to(`video:${videoId}`).emit("video-like-update", {
+
+// ==========================================
+// VIDEO LIKE
+// ==========================================
+
+export const emitVideoLikeUpdate = (
+    videoId,
+    likesCount,
+    isLiked,
+    userId
+) => {
+
+    if (!io) return;
+
+    io.to(`video:${videoId}`).emit(
+        "video-like-update",
+        {
             videoId,
             likesCount,
-            like,
+            isLiked,
             userId,
-        });
-    }
+        }
+    );
+
 };
 
-/**
- * Emit comment like update event
- * @param {string} videoId - The video ID
- * @param {string} commentId - The comment ID
- * @param {number} likesCount - Updated likes count
- * @param {boolean} like - Whether it was liked or unliked
- */
-export const emitCommentLikeUpdate = (videoId, commentId, likesCount, like) => {
-    if (io) {
-        io.to(`video:${videoId}`).emit("comment-like-update", {
+
+// ==========================================
+// COMMENT LIKE
+// ==========================================
+
+export const emitCommentLikeUpdate = (
+    videoId,
+    commentId,
+    likesCount,
+    isLiked,
+    userId
+) => {
+
+    if (!io) return;
+
+    io.to(`video:${videoId}`).emit(
+        "comment-like-update",
+        {
             videoId,
             commentId,
             likesCount,
-            like,
-        });
-    }
+            isLiked,
+            userId,
+        }
+    );
+
 };
 
-/**
- * Emit subscription update event to a specific channel
- * @param {string} channelId - The channel ID
- * @param {number} subscribersCount - Updated subscriber count
- */
-export const emitSubscriptionUpdate = (channelId, subscribersCount) => {
-    if (io) {
-        io.to(`channel:${channelId}`).emit("subscription-update", {
+
+// ==========================================
+// SUBSCRIPTION
+// ==========================================
+
+export const emitSubscriptionUpdate = (
+    channelId,
+    subscribersCount
+) => {
+
+    if (!io) return;
+
+
+    // People currently inside channel room
+    io.to(`channel:${channelId}`).emit(
+        "subscription-update",
+        {
             channelId,
             subscribersCount,
-        });
-        // Also send to the channel owner's personal room
-        io.to(`user:${channelId}`).emit("subscription-update", {
+        }
+    );
+
+
+    // Channel owner
+    io.to(`user:${channelId}`).emit(
+        "subscription-update",
+        {
             channelId,
             subscribersCount,
-        });
-    }
+        }
+    );
+
 };
 
-/**
- * Emit new video published event to all subscribers of a channel
- * @param {string} channelId - The channel ID (owner user ID)
- * @param {Object} video - The published video
- */
-export const emitVideoPublished = (channelId, video) => {
-    if (io) {
-        io.to(`channel:${channelId}`).emit("video-published", {
+
+// ==========================================
+// NEW VIDEO PUBLISHED
+// ==========================================
+
+export const emitVideoPublished = (
+    channelId,
+    video
+) => {
+
+    if (!io) return;
+
+
+    // Send to everyone who subscribed
+    // to this channel
+    io.to(`channel:${channelId}`).emit(
+        "video-published",
+        {
             channelId,
             video,
-        });
-    }
+        }
+    );
+
 };
 
-/**
- * Emit video upload event (when a creator uploads a new video)
- * @param {string} channelId - The channel ID (owner user ID)
- * @param {Object} video - The uploaded video
- */
-export const emitVideoUploaded = (channelId, video) => {
-    if (io) {
-        io.to(`user:${channelId}`).emit("video-uploaded", { video });
-    }
+
+// ==========================================
+// VIDEO UPLOADED
+// ==========================================
+
+export const emitVideoUploaded = (
+    channelId,
+    video
+) => {
+
+    if (!io) return;
+
+
+    // Notify channel owner
+    io.to(`user:${channelId}`).emit(
+        "video-uploaded",
+        {
+            channelId,
+            video,
+        }
+    );
+
 };
 
-/**
- * Emit video update (views, title, description etc.)
- * @param {string} videoId - The video ID
- * @param {Object} video - Updated video data
- */
-export const emitVideoUpdate = (videoId, video) => {
-    if (io) {
-        io.to(`video:${videoId}`).emit("video-update", { videoId, video });
-    }
+
+// ==========================================
+// VIDEO UPDATED
+// ==========================================
+
+export const emitVideoUpdate = (
+    videoId,
+    video
+) => {
+
+    if (!io) return;
+
+
+    io.to(`video:${videoId}`).emit(
+        "video-update",
+        {
+            videoId,
+            video,
+        }
+    );
+
 };
 
-/**
- * Emit video deleted event
- * @param {string} videoId - The video ID
- * @param {string} channelId - The owner channel ID
- */
-export const emitVideoDeleted = (videoId, channelId) => {
-    if (io) {
-        io.to(`channel:${channelId}`).emit("video-deleted", { videoId });
-    }
+
+// ==========================================
+// VIDEO DELETED
+// ==========================================
+
+export const emitVideoDeleted = (
+    videoId,
+    channelId
+) => {
+
+    if (!io) return;
+
+
+    io.to(`channel:${channelId}`).emit(
+        "video-deleted",
+        {
+            videoId,
+        }
+    );
+
 };
 
-/**
- * Emit a notification to a specific user's room
- * @param {string} userId - The user ID to notify
- * @param {string} eventName - The event name
- * @param {Object} data - The event data
- */
-export const emitToUser = (userId, eventName, data) => {
-    if (io) {
-        io.to(`user:${userId}`).emit(eventName, data);
-    }
+
+// ==========================================
+// SEND EVENT TO SPECIFIC USER
+// ==========================================
+
+export const emitToUser = (
+    userId,
+    eventName,
+    data
+) => {
+
+    if (!io) return;
+
+
+    io.to(`user:${userId}`).emit(
+        eventName,
+        data
+    );
+
 };
 
-export { userSockets, socketToUser };
+
+// ==========================================
+// Export maps
+// ==========================================
+
+export {
+    userSockets,
+    socketToUser,
+};
