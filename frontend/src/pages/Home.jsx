@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 
 import Navbar from "../components/navbar/navbar";
 import Sidebar from "../components/sidebar";
@@ -16,8 +16,11 @@ const Home = () => {
     const {
         videos,
         isLoading,
+        isLoadingMore,
+        hasNextPage,
         error,
         getVideos,
+        loadMoreVideos,
         videoPublishedVersion,
     } = useVideoStore();
 
@@ -36,15 +39,56 @@ const Home = () => {
 
 
     // ==========================================
-    // Initial videos
+    // Initial videos (page 1 — replaces the list)
     // ==========================================
 
     // Initial load + refresh when a video is published or channel is updated
     useEffect(() => {
 
-        getVideos();
+        getVideos(1);
 
     }, [getVideos, videoPublishedVersion, channelUpdatedVersion]);
+
+
+    // ==========================================
+    // Infinite scroll — IntersectionObserver on a
+    // sentinel div at the bottom of the video grid
+    // ==========================================
+
+    const sentinelRef = useRef(null);
+
+    const handleIntersect = useCallback(
+        (entries) => {
+            const [entry] = entries;
+
+            if (
+                entry.isIntersecting &&
+                hasNextPage &&
+                !isLoading &&
+                !isLoadingMore
+            ) {
+                loadMoreVideos();
+            }
+        },
+        [hasNextPage, isLoading, isLoadingMore, loadMoreVideos]
+    );
+
+    useEffect(() => {
+
+        const node = sentinelRef.current;
+        if (!node) return;
+
+        const observer = new IntersectionObserver(handleIntersect, {
+            root: null,
+            rootMargin: "300px", // start fetching a bit before it's visible
+            threshold: 0,
+        });
+
+        observer.observe(node);
+
+        return () => observer.disconnect();
+
+    }, [handleIntersect]);
 
 
     // ==========================================
@@ -54,9 +98,6 @@ const Home = () => {
     const videoList = Array.isArray(videos)
         ? videos
         : [];
-
-
-    const visibleVideos = videoList.slice(0, 6);
 
 
     return (
@@ -139,7 +180,7 @@ const Home = () => {
 
 
                     {/* ==========================================
-                        LOADING
+                        INITIAL LOADING (page 1 only)
                     ========================================== */}
 
                     {isLoading && (
@@ -155,13 +196,30 @@ const Home = () => {
 
                     {!isLoading && error && (
 
-                        <div className="flex justify-center py-10">
+                        <div className="flex flex-col items-center justify-center py-10">
 
-                            <p className="text-red-500">
+                            <p className="text-red-500 mb-4">
 
                                 {error}
 
                             </p>
+
+                            <button
+                                type="button"
+                                onClick={() => getVideos(1)}
+                                className="
+                                    px-5
+                                    py-2
+                                    bg-black
+                                    text-white
+                                    rounded-lg
+                                    hover:bg-gray-800
+                                    transition
+                                    cursor-pointer
+                                "
+                            >
+                                Try Again
+                            </button>
 
                         </div>
 
@@ -174,7 +232,7 @@ const Home = () => {
 
                     {!isLoading &&
                         !error &&
-                        visibleVideos.length === 0 && (
+                        videoList.length === 0 && (
 
                             <div className="text-center py-10">
 
@@ -195,30 +253,66 @@ const Home = () => {
 
                     {!isLoading &&
                         !error &&
-                        visibleVideos.length > 0 && (
+                        videoList.length > 0 && (
 
-                            <div
-                                className="
-                                    grid
-                                    grid-cols-1
-                                    sm:grid-cols-2
-                                    lg:grid-cols-3
-                                    xl:grid-cols-3
-                                    gap-x-0
-                                    gap-y-2
-                                "
-                            >
+                            <>
 
-                                {visibleVideos.map((video) => (
+                                <div
+                                    className="
+                                        grid
+                                        grid-cols-1
+                                        sm:grid-cols-2
+                                        lg:grid-cols-3
+                                        xl:grid-cols-3
+                                        gap-x-0
+                                        gap-y-2
+                                    "
+                                >
 
-                                    <HomePageCard
-                                        key={video._id}
-                                        video={video}
-                                    />
+                                    {videoList.map((video) => (
 
-                                ))}
+                                        <HomePageCard
+                                            key={video._id}
+                                            video={video}
+                                        />
 
-                            </div>
+                                    ))}
+
+                                </div>
+
+
+                                {/* Sentinel — observed to trigger the next page */}
+                                <div ref={sentinelRef} className="h-1" />
+
+
+                                {/* ==========================================
+                                    LOADING MORE
+                                ========================================== */}
+
+                                {isLoadingMore && (
+
+                                    <div className="mt-2">
+                                        <LoadingCards count={3} />
+                                    </div>
+
+                                )}
+
+
+                                {/* ==========================================
+                                    END OF FEED
+                                ========================================== */}
+
+                                {!hasNextPage &&
+                                    !isLoadingMore &&
+                                    videoList.length > 0 && (
+
+                                        <p className="text-center text-gray-400 text-sm py-6">
+                                            You're all caught up.
+                                        </p>
+
+                                    )}
+
+                            </>
 
                         )}
 

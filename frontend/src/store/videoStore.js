@@ -14,7 +14,13 @@ const useVideoStore = create((set, get) => ({
 
     isLoading: false,
 
+    isLoadingMore: false,
+
     error: null,
+
+    currentPage: 1,
+
+    hasNextPage: true,
 
 
 
@@ -96,23 +102,36 @@ const useVideoStore = create((set, get) => ({
     },
 
 
-    getVideos: async () => {
+    // page = 1 means "fresh load" (replaces the list, used on mount
+    // or when videoPublishedVersion/channelUpdatedVersion change).
+    // page > 1 means "load more" (appends, used by infinite scroll).
+    getVideos: async (page = 1, limit = 12) => {
 
         try {
 
+            const state = get();
+
+            // Don't fire a duplicate "load more" while one is in flight,
+            // and don't bother once we know there's no next page.
+            if (page > 1 && (state.isLoadingMore || !state.hasNextPage)) {
+                return;
+            }
+
             set({
-                isLoading: true,
+                isLoading: page === 1,
+                isLoadingMore: page > 1,
                 error: null,
             });
 
-
             const response = await axiosInstance.get(
-                "/videos/published"
+                `/videos/published?page=${page}&limit=${limit}`
             );
 
+            const rawVideos = response.data.data.videos || [];
+            const pagination = response.data.data.Pagination || {};
 
             // Convert all http:// Cloudinary URLs to https:// for better browser compatibility
-            const videos = (response.data.data.videos || []).map((video) => ({
+            const videos = rawVideos.map((video) => ({
                 ...video,
                 thumbnail: toHttps(video.thumbnail),
                 videoFile: toHttps(video.videoFile),
@@ -122,10 +141,15 @@ const useVideoStore = create((set, get) => ({
                 },
             }));
 
-            set({
-                videos,
+            set((prev) => ({
+                videos: page === 1
+                    ? videos
+                    : [...prev.videos, ...videos],
+                currentPage: pagination.currentPage || page,
+                hasNextPage: pagination.hasNextPage ?? false,
                 isLoading: false,
-            });
+                isLoadingMore: false,
+            }));
 
 
         } catch (error) {
@@ -142,8 +166,15 @@ const useVideoStore = create((set, get) => ({
                     "Failed to fetch videos",
 
                 isLoading: false,
+                isLoadingMore: false,
             });
         }
+    },
+
+    // Convenience action for the infinite-scroll sentinel to call
+    loadMoreVideos: () => {
+        const { currentPage, getVideos } = get();
+        getVideos(currentPage + 1);
     },
 
     // ==========================================
@@ -290,6 +321,56 @@ const useVideoStore = create((set, get) => ({
     },
 
     // ==========================================
+    // Recommended Videos (shown in the Watch page sidebar)
+    // Reuses /videos/published since there's no dedicated
+    // recommendation endpoint yet — just excludes the video
+    // currently being watched.
+    // ==========================================
+
+    recommendedVideos: [],
+    isRecommendedLoading: false,
+
+    getRecommendedVideos: async (excludeVideoId) => {
+        try {
+            set({ isRecommendedLoading: true });
+
+            const response = await axiosInstance.get(
+                "/videos/published?page=1&limit=15"
+            );
+
+            const rawVideos = response.data.data.videos || [];
+
+            const recommendedVideos = rawVideos
+                .filter((video) => video._id !== excludeVideoId)
+                .map((video) => ({
+                    ...video,
+                    thumbnail: toHttps(video.thumbnail),
+                    videoFile: toHttps(video.videoFile),
+                    owner: {
+                        ...video.owner,
+                        avatar: toHttps(video.owner?.avatar),
+                    },
+                }));
+
+            set({
+                recommendedVideos,
+                isRecommendedLoading: false,
+            });
+
+        } catch (error) {
+            console.error(
+                "Error fetching recommended videos:",
+                error
+            );
+
+            set({
+                recommendedVideos: [],
+                isRecommendedLoading: false,
+            });
+        }
+    },
+
+    // ==========================================
     // Open Selected Video
     // ==========================================
 
@@ -304,6 +385,8 @@ const useVideoStore = create((set, get) => ({
 
     // ==========================================
     // Toggle Subscription (from a video's owner page)
+    // Returns true/false so callers doing an optimistic UI
+    // update know whether to keep it or revert it.
     // ==========================================
 
     toggleSubscription: async () => {
@@ -312,7 +395,7 @@ const useVideoStore = create((set, get) => ({
             const state = useVideoStore.getState();
             const ownerId = state.selectedVideo?.owner?._id;
 
-            if (!ownerId) return;
+            if (!ownerId) return false;
 
             // Subscribe/unsubscribe to the channel room for real-time updates
             if (!state.subscription.isSubscribed) {
@@ -347,11 +430,15 @@ const useVideoStore = create((set, get) => ({
                 unsubscribeFromChannel(ownerId);
             }
 
+            return true;
+
         } catch (error) {
             console.error(
                 "Error toggling subscription:",
                 error
             );
+
+            return false;
         }
     },
 
@@ -516,6 +603,8 @@ const useVideoStore = create((set, get) => ({
     // POST /likes/:videoId/like
     // ==========================================
 
+    // Returns true/false so callers doing an optimistic UI
+    // update know whether to keep it or revert it.
     toggleVideoLike: async () => {
 
         try {
@@ -523,13 +612,14 @@ const useVideoStore = create((set, get) => ({
             const state = useVideoStore.getState();
             const videoId = state.selectedVideoId;
 
-            if (!videoId) return;
+            if (!videoId) return false;
 
             const response = await axiosInstance.post(
                 `/likes/${videoId}/like`
             );
 
             const liked = response.data.data.like;
+            const likesCount = response.data.data.likesCount;
 
             set((prev) => ({
                 isLiked: liked,
@@ -543,12 +633,16 @@ const useVideoStore = create((set, get) => ({
                     : prev.selectedVideo,
             }));
 
+            return true;
+
         } catch (error) {
 
             console.error(
                 "Error toggling video like:",
                 error
             );
+
+            return false;
         }
     },
 
