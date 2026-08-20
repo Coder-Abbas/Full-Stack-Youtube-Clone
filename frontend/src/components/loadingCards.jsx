@@ -2,7 +2,7 @@ import React from "react";
 
 const HomePageCardSkeleton = () => {
   return (
-    <div className="w-full animate-pulse">
+    <div className="w-full animate-pulse ml-3">
       {/* ================= Thumbnail ================= */}
       <div className="relative w-full aspect-video overflow-hidden rounded-xl bg-gray-200" />
 

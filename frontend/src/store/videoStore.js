@@ -1,9 +1,6 @@
 import { create } from "zustand";
 import axiosInstance from "../api/axiosInstance";
-import useAuthStore from "./authStore";
 import { joinVideoRoom, leaveVideoRoom, subscribeToChannel, unsubscribeFromChannel } from "../api/socket";
-
-const { authUser, isAuthenticated } = useAuthStore.getState();
 
 // Helper to convert http:// to https:// for Cloudinary URLs
 const toHttps = (url = "") => {
@@ -18,6 +15,7 @@ const useVideoStore = create((set, get) => ({
     isLoading: false,
 
     error: null,
+
 
 
     // Used to notify other components that a new video was published
@@ -176,10 +174,8 @@ const useVideoStore = create((set, get) => ({
             const response = await axiosInstance.get(
                 "/likes/liked-videos"
             );
-            console.log("Liked videos response:", response.data);
             // Backend returns array of { video: {...} } objects
             const rawLiked = response.data.data || [];
-            console.log("Raw liked videos:", rawLiked);
             // Extract the video from each like object and convert URLs
             const likedVideos = rawLiked.map((item) => {
                 const video = item.video || item;
@@ -214,11 +210,18 @@ const useVideoStore = create((set, get) => ({
     },
 
 
-
-
-
-
-
+    // ==========================================
+    // Subscribed Channels + Their Videos
+    // GET /videos/subscribed-videos
+    //
+    // Backend shape:
+    // data.videos        -> array of video docs
+    // data.subscriptions -> array of subscription docs:
+    //   { _id: subscriptionId, subscriber, channel: { _id, username, fullName, avatar }, ... }
+    //
+    // The channel's own data lives under `.channel`, NOT at the
+    // top level of the subscription doc — so we map/flatten it here.
+    // ==========================================
 
     subscribedChannels: [],
     subscriptionVideos: [],
@@ -239,12 +242,33 @@ const useVideoStore = create((set, get) => ({
 
             const data = response.data.data;
 
-            const subscriptions = data?.subscriptions || [];
-            const videos = data?.videos || [];
+            const rawSubscriptions = data?.subscriptions || [];
+            const rawVideos = data?.videos || [];
+
+            // Flatten each subscription doc down to its channel,
+            // carrying the subscription's own _id along in case
+            // it's ever needed (e.g. to unsubscribe by subscription id).
+            const subscribedChannels = rawSubscriptions
+                .filter((sub) => sub?.channel)
+                .map((sub) => ({
+                    ...sub.channel,
+                    avatar: toHttps(sub.channel.avatar),
+                    subscriptionId: sub._id,
+                }));
+
+            const subscriptionVideos = rawVideos.map((video) => ({
+                ...video,
+                thumbnail: toHttps(video.thumbnail),
+                videoFile: toHttps(video.videoFile),
+                owner: {
+                    ...video.owner,
+                    avatar: toHttps(video.owner?.avatar),
+                },
+            }));
 
             set({
-                subscribedChannels: subscriptions,
-                subscriptionVideos: videos,
+                subscribedChannels,
+                subscriptionVideos,
                 isSubscriptionDataLoading: false,
             });
 
@@ -279,7 +303,7 @@ const useVideoStore = create((set, get) => ({
 
 
     // ==========================================
-    // Toggle Subscription
+    // Toggle Subscription (from a video's owner page)
     // ==========================================
 
     toggleSubscription: async () => {
@@ -326,6 +350,39 @@ const useVideoStore = create((set, get) => ({
         } catch (error) {
             console.error(
                 "Error toggling subscription:",
+                error
+            );
+        }
+    },
+
+    // ==========================================
+    // Toggle Channel Subscription (from the Subscriptions page)
+    // POST /subscription/:channelId/subscribed
+    //
+    // Unlike toggleSubscription above, this always means "unsubscribe"
+    // in context, since this page only lists channels already
+    // subscribed to — so we just remove it from the list on success.
+    // ==========================================
+
+    toggleChannelSubscription: async (channelId) => {
+        if (!channelId) return;
+
+        try {
+            await axiosInstance.post(
+                `/subscription/${channelId}/subscribed`
+            );
+
+            set((prev) => ({
+                subscribedChannels: prev.subscribedChannels.filter(
+                    (c) => c._id !== channelId
+                ),
+            }));
+
+            unsubscribeFromChannel(channelId);
+
+        } catch (error) {
+            console.error(
+                "Error toggling channel subscription:",
                 error
             );
         }

@@ -96,7 +96,7 @@ const Sidebar = ({ isSidebarOpen }) => {
                     flex
                     items-center
                     ${isSidebarOpen
-                        ? "gap-5 px-4"
+                        ? "gap-5 px-8"
                         : "justify-center px-2"
                     }
                     py-3
@@ -115,7 +115,7 @@ const Sidebar = ({ isSidebarOpen }) => {
                 <Icon
                     size={22}
                     className="
-                        flex-shrink-0
+                        flex shrink-0
                         transition-transform
                     "
                 />
@@ -135,7 +135,7 @@ const Sidebar = ({ isSidebarOpen }) => {
         <aside
             className={`
                 h-full
-                flex-shrink-0
+                flex shrink-0
                 bg-white
                 border-r
                 border-gray-200
@@ -257,7 +257,7 @@ const Sidebar = ({ isSidebarOpen }) => {
                             <LogIn
                                 size={21}
                                 className="
-                                    flex-shrink-0
+                                    flex shrink-0
                                     transition-transform
                                     duration-200
                                     group-hover:scale-110

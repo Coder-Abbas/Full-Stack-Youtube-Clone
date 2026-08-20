@@ -6,12 +6,36 @@ import Navbar from "../components/navbar/navbar";
 import Sidebar from "../components/sidebar";
 import LoadingCards from "../components/loadingCards";
 import SubscriptionChannelCard from "../components/subscription/subscriptionCard";
+import HomePageCard from "../components/videoCards/homePageCard";
 
 import useVideoStore from "../store/videoStore";
 import useAuthStore from "../store/authStore";
 
 // How many channels to show before the "View More" button appears
 const PREVIEW_LIMIT = 8;
+
+// ==========================================
+// Channel row skeleton (matches SubscriptionChannelCard layout)
+// ==========================================
+
+const ChannelSkeleton = () => (
+    <div
+        className="
+            flex
+            flex-col
+            items-center
+            text-center
+            p-8
+            border
+            border-gray-100
+            rounded-xl
+            animate-pulse
+        "
+    >
+        <div className="w-17 h-17 rounded-full bg-gray-200 mb-3" />
+        <div className="h-3 w-20 bg-gray-200 rounded mb-2" />
+    </div>
+);
 
 const Subscription = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -32,7 +56,6 @@ const Subscription = () => {
         isSubscriptionDataLoading,
         subscriptionDataError,
         getSubscriptionData,
-        toggleChannelSubscription,
     } = useVideoStore();
 
     // ==========================================
@@ -59,11 +82,15 @@ const Subscription = () => {
     ]);
 
     // ==========================================
-    // Safe Array + Preview Slice
+    // Safe Arrays + Preview Slice
     // ==========================================
 
     const channelList = Array.isArray(subscribedChannels)
         ? subscribedChannels
+        : [];
+
+    const videoList = Array.isArray(subscriptionVideos)
+        ? subscriptionVideos
         : [];
 
     const previewChannels = channelList.slice(0, PREVIEW_LIMIT);
@@ -90,7 +117,7 @@ const Subscription = () => {
                         z-40
                         transition-all
                         duration-300
-                        ${isSidebarOpen ? "w-64" : "w-20"}
+                        ${isSidebarOpen ? "w-54" : "w-20"}
                     `}
                 >
                     <Sidebar isSidebarOpen={isSidebarOpen} />
@@ -105,7 +132,7 @@ const Subscription = () => {
                         overflow-y-auto
                         transition-all
                         duration-300
-                        ${isSidebarOpen ? "left-64" : "left-20"}
+                        ${isSidebarOpen ? "left-54" : "left-20"}
                     `}
                 >
                     <div className="flex flex-col items-center justify-center h-full">
@@ -159,7 +186,7 @@ const Subscription = () => {
                     z-40
                     transition-all
                     duration-300
-                    ${isSidebarOpen ? "w-64" : "w-20"}
+                    ${isSidebarOpen ? "w-54" : "w-20"}
                 `}
             >
                 <Sidebar isSidebarOpen={isSidebarOpen} />
@@ -174,31 +201,41 @@ const Subscription = () => {
                     overflow-y-auto
                     transition-all
                     duration-300
-                    ${isSidebarOpen ? "left-64" : "left-20"}
+                    ${isSidebarOpen ? "left-54" : "left-20"}
                 `}
             >
                 <div className="p-6">
 
-                    <div className="flex items-center justify-between mb-6">
-                        <h1 className="text-2xl font-bold text-gray-900">
-                            Subscriptions
-                        </h1>
+                    {/* ==========================================
+                        LOADING — channel row skeleton on top,
+                        video grid skeleton (LoadingCards) below
+                    ========================================== */}
+                    {isSubscriptionDataLoading && (
+                        <>
+                            <div
+                                className="
+                                    grid
+                                    grid-cols-4
+                                    sm:grid-cols-6
+                                    lg:grid-cols-10
+                                    gap-3
+                                    mb-2
+                                    ml-10
+                                "
+                            >
+                                {Array.from({ length: 10 }).map((_, i) => (
+                                    <ChannelSkeleton key={i} />
+                                ))}
+                            </div>
 
-                        {!isSubscriptionDataLoading && (
-                            <span className="text-sm text-gray-500">
-                                {channelList.length}{" "}
-                                {channelList.length === 1
-                                    ? "channel"
-                                    : "channels"}
-                            </span>
-                        )}
-                    </div>
-
-                    {!isSubscriptionDataLoading && (
-                        <LoadingCards count={8} />
+                            <LoadingCards />
+                        </>
                     )}
 
-                    {isSubscriptionDataLoading &&
+                    {/* ==========================================
+                        ERROR
+                    ========================================== */}
+                    {!isSubscriptionDataLoading &&
                         subscriptionDataError && (
                             <div className="flex flex-col items-center justify-center py-20">
                                 <p className="text-red-500 text-center">
@@ -224,6 +261,9 @@ const Subscription = () => {
                             </div>
                         )}
 
+                    {/* ==========================================
+                        EMPTY
+                    ========================================== */}
                     {!isSubscriptionDataLoading &&
                         !subscriptionDataError &&
                         channelList.length === 0 && (
@@ -238,6 +278,9 @@ const Subscription = () => {
                             </div>
                         )}
 
+                    {/* ==========================================
+                        LOADED — Channels + Videos
+                    ========================================== */}
                     {!isSubscriptionDataLoading &&
                         !subscriptionDataError &&
                         channelList.length > 0 && (
@@ -245,19 +288,16 @@ const Subscription = () => {
                                 <div
                                     className="
                                         grid
-                                        grid-cols-2
-                                        sm:grid-cols-3
-                                        lg:grid-cols-4
-                                        gap-4
+                                        grid-cols-4
+                                        sm:grid-cols-10
+                                        lg:grid-cols-10
+                                        gap-1
                                     "
                                 >
                                     {previewChannels.map((channel) => (
                                         <SubscriptionChannelCard
                                             key={channel._id}
                                             channel={channel}
-                                            onToggleSubscription={
-                                                toggleChannelSubscription
-                                            }
                                         />
                                     ))}
                                 </div>
@@ -281,6 +321,35 @@ const Subscription = () => {
                                         >
                                             View More
                                         </Link>
+                                    </div>
+                                )}
+
+                                {videoList.length === 0 ? (
+                                    <div className="text-center py-16">
+                                        <p className="text-gray-500">
+                                            No videos from your subscriptions yet.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="mt-10">
+                                        <div
+                                            className="
+                                                grid
+                                                grid-cols-1
+                                                sm:grid-cols-2
+                                                lg:grid-cols-3
+                                                xl:grid-cols-3
+                                                gap-x-0
+                                                gap-y-2
+                                            "
+                                        >
+                                            {videoList.map((video) => (
+                                                <HomePageCard
+                                                    key={video._id}
+                                                    video={video}
+                                                />
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
                             </>
