@@ -157,6 +157,65 @@ const isPublished = asyncHandler(async (req, res) => {
 })
 
 
+const getSubscribedVideos = asyncHandler(async (req, res) => {
+    //1. get the user id from req.user
+
+    const userId = req.user?._id;
+
+    //validate 
+    if (!userId || !isValidObjectId(userId)) {
+        throw new APIError(400, "Invalid user ID");
+    }
+
+    //2. find the subscriptions of the user
+    const subscriptions = await Subscription.find({
+        subscriber: userId
+    })
+        .populate("channel", "username fullName avatar")
+        .sort({ createdAt: -1 });
+
+    //3. get the channel ids
+    const channelIds = subscriptions.map(sub => sub.channel?._id);
+
+    //validate
+    if (channelIds.length === 0) {
+        return res.status(200).json(
+            new ApiResponse(
+                200,
+                {
+                    videos: [],
+                    subscriptions: [],
+                },
+                "No subscriptions found"
+            )
+        );
+    }
+
+    const videos = await Video.find({
+        owner: { $in: channelIds },
+        isPublished: true
+    })
+        .populate("owner", "username fullName avatar")
+        .sort({ createdAt: -1 });
+
+
+    const data = {
+        videos,
+        subscriptions
+    }
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            data,
+            "Subscribed videos fetched successfully"
+        )
+    );
+
+
+
+})
+
 const getAllPublishedVideos = asyncHandler(async (req, res) => {
 
     // 1. Get pagination information
@@ -600,7 +659,7 @@ const getViews = asyncHandler(async (req, res) => {
 const getMyVideos = asyncHandler(async (req, res) => {
 
     const userId = req.user?._id;
-    if(!userId || !isValidObjectId(userId)) {
+    if (!userId || !isValidObjectId(userId)) {
         throw new APIError(400, "Invalid user ID");
     }
 
@@ -636,6 +695,7 @@ export {
     getSelectedVideo,
     deleteVideo,
     updateVideo,
-    getViews
-    
+    getViews,
+    getSubscribedVideos
+
 }

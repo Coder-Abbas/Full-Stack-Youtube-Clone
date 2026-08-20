@@ -28,9 +28,10 @@ const Subscription = () => {
 
     const {
         subscribedChannels,
-        isSubscribedChannelsLoading,
-        subscribedChannelsError,
-        getSubscribedChannels,
+        subscriptionVideos,
+        isSubscriptionDataLoading,
+        subscriptionDataError,
+        getSubscriptionData,
         toggleChannelSubscription,
     } = useVideoStore();
 
@@ -50,11 +51,11 @@ const Subscription = () => {
         if (isCheckingAuth) return;
         if (!authUser) return;
 
-        getSubscribedChannels();
+        getSubscriptionData();
     }, [
         authUser,
         isCheckingAuth,
-        getSubscribedChannels,
+        getSubscriptionData,
     ]);
 
     // ==========================================
@@ -183,7 +184,7 @@ const Subscription = () => {
                             Subscriptions
                         </h1>
 
-                        {!isSubscribedChannelsLoading && (
+                        {!isSubscriptionDataLoading && (
                             <span className="text-sm text-gray-500">
                                 {channelList.length}{" "}
                                 {channelList.length === 1
@@ -193,19 +194,19 @@ const Subscription = () => {
                         )}
                     </div>
 
-                    {isSubscribedChannelsLoading && (
+                    {!isSubscriptionDataLoading && (
                         <LoadingCards count={8} />
                     )}
 
-                    {!isSubscribedChannelsLoading &&
-                        subscribedChannelsError && (
+                    {isSubscriptionDataLoading &&
+                        subscriptionDataError && (
                             <div className="flex flex-col items-center justify-center py-20">
                                 <p className="text-red-500 text-center">
-                                    {subscribedChannelsError}
+                                    {subscriptionDataError}
                                 </p>
                                 <button
                                     type="button"
-                                    onClick={getSubscribedChannels}
+                                    onClick={getSubscriptionData}
                                     className="
                                         mt-4
                                         px-5
@@ -223,8 +224,8 @@ const Subscription = () => {
                             </div>
                         )}
 
-                    {!isSubscribedChannelsLoading &&
-                        !subscribedChannelsError &&
+                    {!isSubscriptionDataLoading &&
+                        !subscriptionDataError &&
                         channelList.length === 0 && (
                             <div className="flex flex-col items-center justify-center py-20 text-center">
                                 <Users size={80} className="text-gray-300 mb-4" />
@@ -237,8 +238,8 @@ const Subscription = () => {
                             </div>
                         )}
 
-                    {!isSubscribedChannelsLoading &&
-                        !subscribedChannelsError &&
+                    {!isSubscriptionDataLoading &&
+                        !subscriptionDataError &&
                         channelList.length > 0 && (
                             <>
                                 <div

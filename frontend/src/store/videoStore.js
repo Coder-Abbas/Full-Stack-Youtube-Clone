@@ -12,13 +12,13 @@ const toHttps = (url = "") => {
 };
 
 const useVideoStore = create((set, get) => ({
-    
+
     videos: [],
 
     isLoading: false,
 
     error: null,
-    
+
 
     // Used to notify other components that a new video was published
     videoPublishedVersion: 0,
@@ -213,6 +213,57 @@ const useVideoStore = create((set, get) => ({
         }
     },
 
+
+
+
+
+
+
+
+    subscribedChannels: [],
+    subscriptionVideos: [],
+
+    isSubscriptionDataLoading: false,
+    subscriptionDataError: null,
+
+    getSubscriptionData: async () => {
+        try {
+            set({
+                isSubscriptionDataLoading: true,
+                subscriptionDataError: null,
+            });
+
+            const response = await axiosInstance.get(
+                "/videos/subscribed-videos"
+            );
+
+            const data = response.data.data;
+
+            const subscriptions = data?.subscriptions || [];
+            const videos = data?.videos || [];
+
+            set({
+                subscribedChannels: subscriptions,
+                subscriptionVideos: videos,
+                isSubscriptionDataLoading: false,
+            });
+
+        } catch (error) {
+            console.error(
+                "Error fetching subscription data:",
+                error
+            );
+
+            set({
+                subscribedChannels: [],
+                subscriptionVideos: [],
+                isSubscriptionDataLoading: false,
+                subscriptionDataError:
+                    error?.response?.data?.message ||
+                    "Failed to fetch subscription data",
+            });
+        }
+    },
 
     // ==========================================
     // Open Selected Video

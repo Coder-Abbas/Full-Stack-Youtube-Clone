@@ -9,7 +9,8 @@ import {
     deleteVideo,
     updateVideo,
     getViews,
-    getMyVideos
+    getMyVideos,
+    getSubscribedVideos
 } from "../controllers/videos.controllers.js";
 
 
@@ -54,6 +55,11 @@ router.route("/:videoId").delete(
     deleteVideo
 )
 
+router.route("/subscribed-videos").get(
+    verifyJWT,
+    getSubscribedVideos
+)
+
 
 router.route("/update/:videoId").patch(
     verifyJWT,
@@ -88,6 +94,8 @@ router.route("/:videoId").get(
     optionalVerifyJWT,
     getSelectedVideo
 )
+
+
 
 
 export default router;
