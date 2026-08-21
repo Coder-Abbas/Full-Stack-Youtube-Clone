@@ -1,5 +1,5 @@
 import {verifyJWT} from "../middlewares/auth.middlewares.js";
-import {addComment, updateComment, deleteComment} from "../controllers/comment.controllers.js";
+import {addComment, updateComment, deleteComment, getTotalCommentsOfVideo} from "../controllers/comment.controllers.js";
 import {Router} from "express";
 
 
@@ -21,6 +21,9 @@ router.route("/:commentId/deletecomment").delete(
     deleteComment
 )
 
+router.route("/:videoId/total-comments").get(
+    getTotalCommentsOfVideo
+)
 
 
 

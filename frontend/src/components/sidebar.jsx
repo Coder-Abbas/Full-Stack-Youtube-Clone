@@ -96,8 +96,8 @@ const Sidebar = ({ isSidebarOpen }) => {
                     flex
                     items-center
                     ${isSidebarOpen
-                        ? "gap-5 px-8"
-                        : "justify-center px-2"
+                        ? "gap-5 px-9"
+                        : "justify-center px-3"
                     }
                     py-3
                     rounded-xl

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import {
@@ -23,6 +23,8 @@ import WatchPageSkeleton from "../components/home/watchPageSkelton";
 import VideoPlayer from "../components/Home/videoPlayer";
 import RecommendedVideoCard from "../components/Home/RecomendedVideoCard";
 
+// How long to wait after the last click before we actually hit the backend.
+const DEBOUNCE_MS = 500;
 
 const SelectVideo = () => {
 
@@ -80,15 +82,48 @@ const SelectVideo = () => {
 
 
     const [localIsLiked, setLocalIsLiked] = useState(false);
-    const [localLikesCount, setLocalLikesCount] = useState();
+    const [localLikesCount, setLocalLikesCount] = useState(0);
 
     const [localSubscription, setLocalSubscription] = useState({
         isSubscribed: false,
         subscribersCount: 0,
     });
 
+    // ==========================================
+    // Debounce plumbing
+    // ==========================================
+    // "confirmed*" refs hold the last value we know the BACKEND actually
+    // has (seeded from the initial fetch, then updated only after a
+    // successful toggle call returns real numbers). Local state is
+    // allowed to run ahead of this instantly on every click.
+    //
+    // When the debounce timer fires, we only call the backend if local
+    // state still disagrees with the confirmed value — click an even
+    // number of times and land back where you started, and NO network
+    // call happens at all (important: these are toggle endpoints, so an
+    // extra call would actually flip the backend the wrong way).
+    //
+    // On success, local state is snapped to whatever the STORE reports
+    // back (which is itself the real backend number) — never to our own
+    // optimistic guess. That's what prevents double-counting.
+
+    const likeConfirmedRef = useRef({ liked: false, count: 0 });
+    const likeTimerRef = useRef(null);
+
+    const subscribeConfirmedRef = useRef({ isSubscribed: false, subscribersCount: 0 });
+    const subscribeTimerRef = useRef(null);
+
+    // Per-comment: commentId -> { liked, count }
+    const commentLikeConfirmedRef = useRef({});
+    // Per-comment: commentId -> timeout id
+    const commentLikeTimersRef = useRef({});
+
     useEffect(() => {
         setLocalIsLiked(isLiked);
+        likeConfirmedRef.current = {
+            liked: isLiked,
+            count: selectedVideo?.likesCount ?? 0,
+        };
     }, [isLiked, selectedVideo?._id]);
 
     useEffect(() => {
@@ -97,46 +132,170 @@ const SelectVideo = () => {
 
     useEffect(() => {
         setLocalSubscription(subscription);
+        subscribeConfirmedRef.current = subscription ?? {
+            isSubscribed: false,
+            subscribersCount: 0,
+        };
     }, [subscription, selectedVideo?._id]);
 
-    const handleLikeClick = async () => {
+    // Clean up any in-flight timers when we navigate away
+    useEffect(() => {
+        return () => {
+            if (likeTimerRef.current) clearTimeout(likeTimerRef.current);
+            if (subscribeTimerRef.current) clearTimeout(subscribeTimerRef.current);
+            Object.values(commentLikeTimersRef.current).forEach((t) => clearTimeout(t));
+        };
+    }, []);
+
+    // ==========================================
+    // Like (debounced)
+    // ==========================================
+
+    const handleLikeClick = () => {
         const previousLiked = localIsLiked;
         const previousCount = localLikesCount;
 
-        // Flip instantly
-        setLocalIsLiked(!previousLiked);
-        setLocalLikesCount(
-            previousLiked
-                ? Math.max(0, previousCount - 1)
-                : previousCount + 1
-        );
+        const nextLiked = !previousLiked;
+        const nextCount = nextLiked
+            ? previousCount + 1
+            : Math.max(0, previousCount - 1);
 
-        const success = await toggleVideoLike();
+        // Flip instantly, every click, no matter how fast
+        setLocalIsLiked(nextLiked);
+        setLocalLikesCount(nextCount);
 
-        // Revert only if the request actually failed
-        if (!success) {
-            setLocalIsLiked(previousLiked);
-            setLocalLikesCount(previousCount);
-        }
+        if (likeTimerRef.current) clearTimeout(likeTimerRef.current);
+
+        likeTimerRef.current = setTimeout(async () => {
+            const confirmed = likeConfirmedRef.current;
+
+            // Net-zero: user clicked back to the state the backend
+            // already has. Nothing to send.
+            if (nextLiked === confirmed.liked) return;
+
+            const result = await toggleVideoLike();
+
+            if (result.success) {
+                // Snap to whatever the BACKEND actually says. The store
+                // already applied this exact number internally — we're
+                // just mirroring it here instead of waiting on the sync
+                // effect, and critically, NOT adding our own +/-1 on top.
+                likeConfirmedRef.current = {
+                    liked: result.liked,
+                    count: result.likesCount,
+                };
+                setLocalIsLiked(result.liked);
+                setLocalLikesCount(result.likesCount);
+            } else {
+                // Revert UI to the last known-good backend state
+                setLocalIsLiked(confirmed.liked);
+                setLocalLikesCount(confirmed.count);
+            }
+        }, DEBOUNCE_MS);
     };
 
-    const handleSubscribeClick = async () => {
+    // ==========================================
+    // Subscribe (debounced)
+    // ==========================================
+
+    const handleSubscribeClick = () => {
         const previous = localSubscription;
 
-        // Flip instantly
+        const nextIsSubscribed = !previous.isSubscribed;
+        const nextCount = nextIsSubscribed
+            ? previous.subscribersCount + 1
+            : Math.max(0, previous.subscribersCount - 1);
+
         setLocalSubscription({
-            isSubscribed: !previous.isSubscribed,
-            subscribersCount: previous.isSubscribed
-                ? Math.max(0, previous.subscribersCount - 1)
-                : previous.subscribersCount + 1,
+            isSubscribed: nextIsSubscribed,
+            subscribersCount: nextCount,
         });
 
-        const success = await toggleSubscription();
+        if (subscribeTimerRef.current) clearTimeout(subscribeTimerRef.current);
 
-        // Revert only if the request actually failed
-        if (!success) {
-            setLocalSubscription(previous);
+        subscribeTimerRef.current = setTimeout(async () => {
+            const confirmed = subscribeConfirmedRef.current;
+
+            if (nextIsSubscribed === confirmed.isSubscribed) return;
+
+            const result = await toggleSubscription();
+
+            if (result.success) {
+                const next = {
+                    isSubscribed: result.isSubscribed,
+                    subscribersCount: result.subscribersCount,
+                };
+                subscribeConfirmedRef.current = next;
+                setLocalSubscription(next);
+            } else {
+                setLocalSubscription(confirmed);
+            }
+        }, DEBOUNCE_MS);
+    };
+
+    // ==========================================
+    // Comment like (debounced, per comment)
+    // ==========================================
+
+    const handleCommentLikeClick = (commentItem) => {
+        const commentId = commentItem._id;
+
+        // Lazily seed the "confirmed" backend value for this comment the
+        // first time it's clicked.
+        if (!commentLikeConfirmedRef.current[commentId]) {
+            commentLikeConfirmedRef.current[commentId] = {
+                liked: commentItem.isLiked,
+                count: commentItem.likesCount,
+            };
         }
+
+        const nextLiked = !commentItem.isLiked;
+        const nextCount = nextLiked
+            ? commentItem.likesCount + 1
+            : Math.max(0, commentItem.likesCount - 1);
+
+        // Flip instantly in the comments list
+        setComments((prev) =>
+            prev.map((c) =>
+                c._id === commentId
+                    ? { ...c, isLiked: nextLiked, likesCount: nextCount }
+                    : c
+            )
+        );
+
+        if (commentLikeTimersRef.current[commentId]) {
+            clearTimeout(commentLikeTimersRef.current[commentId]);
+        }
+
+        commentLikeTimersRef.current[commentId] = setTimeout(async () => {
+            const confirmed = commentLikeConfirmedRef.current[commentId];
+
+            if (nextLiked === confirmed.liked) return;
+
+            const result = await toggleCommentLike(commentId);
+
+            if (result.success) {
+                const next = { liked: result.liked, count: result.likesCount };
+                commentLikeConfirmedRef.current[commentId] = next;
+
+                // Snap this comment to the authoritative backend count
+                setComments((prev) =>
+                    prev.map((c) =>
+                        c._id === commentId
+                            ? { ...c, isLiked: result.liked, likesCount: result.likesCount }
+                            : c
+                    )
+                );
+            } else {
+                setComments((prev) =>
+                    prev.map((c) =>
+                        c._id === commentId
+                            ? { ...c, isLiked: confirmed.liked, likesCount: confirmed.count }
+                            : c
+                    )
+                );
+            }
+        }, DEBOUNCE_MS);
     };
 
 
@@ -215,7 +374,7 @@ const SelectVideo = () => {
                         c._id === data.commentId
                             ? {
                                 ...c,
-                                commentLikesCount: data.likesCount,
+                                likesCount: data.likesCount,
                             }
                             : c
                     )
@@ -396,6 +555,11 @@ const SelectVideo = () => {
             if (editingCommentId === commentId) {
                 setEditingCommentId(null);
                 setEditingCommentValue("");
+            }
+            delete commentLikeConfirmedRef.current[commentId];
+            if (commentLikeTimersRef.current[commentId]) {
+                clearTimeout(commentLikeTimersRef.current[commentId]);
+                delete commentLikeTimersRef.current[commentId];
             }
         }
     };
@@ -776,7 +940,7 @@ const SelectVideo = () => {
 
                                                         <button
                                                             type="button"
-                                                            onClick={() => toggleCommentLike(commentItem._id)}
+                                                            onClick={() => handleCommentLikeClick(commentItem)}
                                                             className={`
                                                                 flex
                                                                 items-center

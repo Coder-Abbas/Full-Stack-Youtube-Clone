@@ -111,6 +111,30 @@ const updateComment = asyncHandler(async (req, res) => {
 })
 
 
+const getTotalCommentsOfVideo = asyncHandler(async (req, res) => {
+    //1. get the video id from params
+    const { videoId } = req.params;
+    //2. validate video id
+    if (!isValidObjectId(videoId)) {
+        throw new APIError(400, "Invalid video id");
+    }
+
+    //3. check video exists
+    const video = await Video.findById(videoId);
+    if (!video) {
+        throw new APIError(404, "Video not found");
+    }
+
+    //4. get the total comments of the video
+    const totalComments = await Comment.countDocuments({ video: videoId });
+
+    //5. send response
+    return res.status(200)
+        .json(
+            new ApiResponse(200, { totalComments }, "Total comments fetched successfully")
+        )
+})
+
 const deleteComment = asyncHandler(async (req, res) => {
 
     //1. get the comment id
@@ -153,6 +177,7 @@ const deleteComment = asyncHandler(async (req, res) => {
 export {
     addComment,
     updateComment,
-    deleteComment
+    deleteComment,
+    getTotalCommentsOfVideo
 
 }

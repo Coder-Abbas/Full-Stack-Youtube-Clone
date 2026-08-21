@@ -6,44 +6,37 @@ import {
     VolumeX,
     SkipBack,
     SkipForward,
-    Maximize,
-    Minimize,
-    SkipForward as NextIcon,
+    Maximize2,
+    Minimize2,
+    Captions,
+    Settings,
+    PictureInPicture2,
+    Loader2,
 } from "lucide-react";
 
-// ==========================================
-// VideoPlayer
-//
-// Self-contained YouTube-style player: custom controls,
-// keyboard shortcuts, and smooth transitions on the control
-// bar / play-state overlay.
-//
-// Keyboard shortcuts (active while the player has focus,
-// or globally if the user isn't typing in an input):
-//   Space / K   → play / pause
-//   J / ←       → seek back 10s
-//   L / →       → seek forward 10s
-//   ↑ / ↓       → volume up / down
-//   M           → mute / unmute
-//   F           → fullscreen toggle
-//   N           → next video (if onNext is provided)
-// ==========================================
+const PLAYBACK_SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
 const VideoPlayer = ({ videoFile, thumbnail, onNext, hasNext = false }) => {
-
     const containerRef = useRef(null);
     const videoRef = useRef(null);
+    const settingsRef = useRef(null);
 
     const [isPlaying, setIsPlaying] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
     const [volume, setVolume] = useState(1);
     const [progress, setProgress] = useState(0);
+    const [bufferedPercent, setBufferedPercent] = useState(0);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
     const [isFullScreen, setIsFullScreen] = useState(false);
 
-    // Brief center "flash" icon on keyboard actions, like YouTube
-    // (play/pause, +10/-10, mute) — pure visual feedback.
+    const [isBuffering, setIsBuffering] = useState(false);
+
+    const [captionsOn, setCaptionsOn] = useState(false);
+    const [autoplayNext, setAutoplayNext] = useState(true);
+    const [playbackSpeed, setPlaybackSpeed] = useState(1);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
     const [flashIcon, setFlashIcon] = useState(null);
     const flashTimeoutRef = useRef(null);
 
@@ -52,11 +45,6 @@ const VideoPlayer = ({ videoFile, thumbnail, onNext, hasNext = false }) => {
         if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
         flashTimeoutRef.current = setTimeout(() => setFlashIcon(null), 500);
     }, []);
-
-
-    // ==========================================
-    // Core actions (reused by both buttons + keyboard)
-    // ==========================================
 
     const togglePlay = useCallback(() => {
         const vid = videoRef.current;
@@ -113,16 +101,44 @@ const VideoPlayer = ({ videoFile, thumbnail, onNext, hasNext = false }) => {
         }
     }, []);
 
+    const togglePictureInPicture = useCallback(async () => {
+        const vid = videoRef.current;
+        if (!vid) return;
 
-    // ==========================================
-    // Keyboard shortcuts
-    // ==========================================
+        try {
+            if (document.pictureInPictureElement) {
+                await document.exitPictureInPicture();
+            } else if (document.pictureInPictureEnabled) {
+                await vid.requestPictureInPicture();
+            }
+        } catch (err) {
+            console.error("Picture-in-picture failed:", err);
+        }
+    }, []);
+
+    const changePlaybackSpeed = useCallback((speed) => {
+        const vid = videoRef.current;
+        if (!vid) return;
+
+        vid.playbackRate = speed;
+        setPlaybackSpeed(speed);
+        setIsSettingsOpen(false);
+    }, []);
+
+    const toggleCaptions = useCallback(() => {
+        const vid = videoRef.current;
+        const next = !captionsOn;
+        setCaptionsOn(next);
+
+        if (vid?.textTracks?.length) {
+            Array.from(vid.textTracks).forEach((track) => {
+                track.mode = next ? "showing" : "hidden";
+            });
+        }
+    }, [captionsOn]);
 
     useEffect(() => {
-
         const handleKeyDown = (e) => {
-            // Don't hijack keys while the user is typing somewhere
-            // (comment box, edit field, etc.)
             const tag = document.activeElement?.tagName;
             if (tag === "INPUT" || tag === "TEXTAREA") return;
 
@@ -132,46 +148,46 @@ const VideoPlayer = ({ videoFile, thumbnail, onNext, hasNext = false }) => {
                     e.preventDefault();
                     togglePlay();
                     break;
-
                 case "j":
                 case "arrowleft":
                     e.preventDefault();
                     seekBy(-10);
                     break;
-
                 case "l":
                 case "arrowright":
                     e.preventDefault();
                     seekBy(10);
                     break;
-
                 case "arrowup":
                     e.preventDefault();
                     changeVolume(0.1);
                     break;
-
                 case "arrowdown":
                     e.preventDefault();
                     changeVolume(-0.1);
                     break;
-
                 case "m":
                     e.preventDefault();
                     toggleMute();
                     break;
-
                 case "f":
                     e.preventDefault();
                     toggleFullScreen();
                     break;
-
+                case "i":
+                    e.preventDefault();
+                    togglePictureInPicture();
+                    break;
+                case "c":
+                    e.preventDefault();
+                    toggleCaptions();
+                    break;
                 case "n":
                     if (hasNext && onNext) {
                         e.preventDefault();
                         onNext();
                     }
                     break;
-
                 default:
                     break;
             }
@@ -179,14 +195,17 @@ const VideoPlayer = ({ videoFile, thumbnail, onNext, hasNext = false }) => {
 
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
-
-    }, [togglePlay, seekBy, changeVolume, toggleMute, toggleFullScreen, hasNext, onNext]);
-
-
-    // ==========================================
-    // Fullscreen change listener (keeps icon in sync
-    // if user exits via Esc rather than the button)
-    // ==========================================
+    }, [
+        togglePlay,
+        seekBy,
+        changeVolume,
+        toggleMute,
+        toggleFullScreen,
+        togglePictureInPicture,
+        toggleCaptions,
+        hasNext,
+        onNext,
+    ]);
 
     useEffect(() => {
         const handleFsChange = () => {
@@ -197,18 +216,36 @@ const VideoPlayer = ({ videoFile, thumbnail, onNext, hasNext = false }) => {
         return () => document.removeEventListener("fullscreenchange", handleFsChange);
     }, []);
 
+    useEffect(() => {
+        if (!isSettingsOpen) return;
 
-    // ==========================================
-    // Auto-advance to next video when this one ends
-    // ==========================================
+        const handleClickOutside = (e) => {
+            if (settingsRef.current && !settingsRef.current.contains(e.target)) {
+                setIsSettingsOpen(false);
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [isSettingsOpen]);
 
     const handleEnded = () => {
         setIsPlaying(false);
-        if (hasNext && onNext) {
+        if (autoplayNext && hasNext && onNext) {
             onNext();
         }
     };
 
+    const updateBuffered = useCallback(() => {
+        const vid = videoRef.current;
+        if (!vid || !vid.duration) return;
+
+        const buffered = vid.buffered;
+        if (buffered.length > 0) {
+            const end = buffered.end(buffered.length - 1);
+            setBufferedPercent((end / vid.duration) * 100);
+        }
+    }, []);
 
     const flashLabel = {
         play: <Play size={34} fill="white" />,
@@ -219,22 +256,32 @@ const VideoPlayer = ({ videoFile, thumbnail, onNext, hasNext = false }) => {
         unmuted: <Volume2 size={30} />,
     };
 
+    const formatTime = (t) => {
+        if (!Number.isFinite(t)) return "0:00";
+        const h = Math.floor(t / 3600);
+        const m = Math.floor((t % 3600) / 60);
+        const s = Math.floor(t % 60).toString().padStart(2, "0");
+        return h > 0 ? `${h}:${m.toString().padStart(2, "0")}:${s}` : `${m}:${s}`;
+    };
 
     return (
         <div
             ref={containerRef}
             className="relative w-full aspect-video bg-black rounded-xl overflow-hidden group"
         >
-
             <video
                 ref={videoRef}
                 src={videoFile}
                 poster={thumbnail}
-                className="w-full h-full object-contain transition-opacity duration-300"
+                preload="auto"
+                className="w-full h-full object-contain transition-opacity duration-300 cursor-pointer"
                 onClick={togglePlay}
                 onPlay={() => setIsPlaying(true)}
                 onPause={() => setIsPlaying(false)}
                 onEnded={handleEnded}
+                onWaiting={() => setIsBuffering(true)}
+                onPlaying={() => setIsBuffering(false)}
+                onCanPlay={() => setIsBuffering(false)}
                 onVolumeChange={(e) => {
                     const vid = e.target;
                     setIsMuted(vid.muted);
@@ -245,8 +292,10 @@ const VideoPlayer = ({ videoFile, thumbnail, onNext, hasNext = false }) => {
                     setCurrentTime(vid.currentTime);
                     setProgress((vid.currentTime / vid.duration) * 100);
                 }}
+                onProgress={updateBuffered}
                 onLoadedMetadata={(e) => {
                     setDuration(e.target.duration);
+                    updateBuffered();
                 }}
                 onSeeking={() => {
                     if (!videoRef.current) return;
@@ -256,106 +305,35 @@ const VideoPlayer = ({ videoFile, thumbnail, onNext, hasNext = false }) => {
                 }}
             />
 
-            {/* Center flash icon — fades in/out on keyboard actions */}
-            <div
-                className={`
-                    pointer-events-none
-                    absolute
-                    inset-0
-                    flex
-                    items-center
-                    justify-center
-                `}
-            >
+            {/* Buffering Spinner */}
+            {isBuffering && (
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                    <Loader2 size={44} className="text-white animate-spin" />
+                </div>
+            )}
+
+            {/* Center Flash Icon */}
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                 <div
-                    className={`
-                        bg-black/60
-                        rounded-full
-                        p-5
-                        text-white
-                        transition-all
-                        duration-300
-                        ${flashIcon
-                            ? "opacity-100 scale-100"
-                            : "opacity-0 scale-75"
-                        }
-                    `}
+                    className={`bg-black/60 rounded-full p-5 text-white transition-all duration-300 ${
+                        flashIcon ? "opacity-100 scale-100" : "opacity-0 scale-75"
+                    }`}
                 >
                     {flashIcon && flashLabel[flashIcon]}
                 </div>
             </div>
 
-            {/* Custom Video Controls */}
+            {/* Custom Video Controls Container */}
             <div
-                className={`
-                    absolute
-                    bottom-0
-                    left-0
-                    right-0
-                    bg-gradient-to-t
-                    from-black/80
-                    to-transparent
-                    p-4
-                    flex
-                    items-center
-                    gap-3
-                    text-white
-                    transition-all
-                    duration-300
-                    ease-out
-                    ${isPlaying
+                className={`absolute left-3 right-3 bottom-3 rounded-xl bg-black/40 backdrop-blur-md px-4 py-2.5 flex flex-col gap-2 text-white transition-all duration-300 ease-out ${
+                    isPlaying
                         ? "opacity-100 translate-y-0"
                         : "opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0"
-                    }
-                `}
+                }`}
             >
-                {/* Play / Pause */}
-                <button
-                    type="button"
-                    onClick={togglePlay}
-                    className="hover:text-gray-300 hover:scale-110 transition duration-150"
-                    title="Play/Pause (Space)"
-                >
-                    {isPlaying ? <Pause size={22} /> : <Play size={22} />}
-                </button>
-
-                {/* Skip Backward 10s */}
-                <button
-                    type="button"
-                    onClick={() => seekBy(-10)}
-                    className="hover:text-gray-300 hover:scale-110 transition duration-150 flex items-center"
-                    title="Back 10s (J / ←)"
-                >
-                    <SkipBack size={20} />
-                    <span className="text-xs ml-1">10</span>
-                </button>
-
-                {/* Skip Forward 10s */}
-                <button
-                    type="button"
-                    onClick={() => seekBy(10)}
-                    className="hover:text-gray-300 hover:scale-110 transition duration-150 flex items-center"
-                    title="Forward 10s (L / →)"
-                >
-                    <SkipForward size={20} />
-                    <span className="text-xs ml-1">10</span>
-                </button>
-
-                {/* Next video */}
-                {hasNext && onNext && (
-                    <button
-                        type="button"
-                        onClick={onNext}
-                        className="hover:text-gray-300 hover:scale-110 transition duration-150"
-                        title="Next video (N)"
-                    >
-                        <NextIcon size={20} />
-                    </button>
-                )}
-
-                {/* Progress Bar */}
+                {/* Progress Bar — YouTube style top-of-bar scrubber */}
                 <div
-                    className="flex-1 h-1 hover:h-1.5 bg-gray-600 rounded-full cursor-pointer relative transition-all duration-150"
+                    className="w-full h-1.5 bg-white/20 rounded-full cursor-pointer relative group/bar"
                     onClick={(e) => {
                         const rect = e.currentTarget.getBoundingClientRect();
                         const percent = (e.clientX - rect.left) / rect.width;
@@ -363,68 +341,168 @@ const VideoPlayer = ({ videoFile, thumbnail, onNext, hasNext = false }) => {
                             videoRef.current.currentTime = percent * videoRef.current.duration;
                         }
                     }}
+                    title="Seek"
                 >
+                    {/* Buffered Range */}
                     <div
-                        className="h-full bg-red-500 rounded-full transition-[width] duration-100"
+                        className="absolute inset-y-0 left-0 bg-white/40 rounded-full transition-[width] duration-200"
+                        style={{ width: `${bufferedPercent}%` }}
+                    />
+                    {/* Played Range */}
+                    <div
+                        className="absolute inset-y-0 left-0 bg-pink-500 rounded-full transition-[width] duration-100"
                         style={{ width: `${progress}%` }}
                     />
-                </div>
-
-                {/* Time */}
-                <span className="text-xs text-gray-300 min-w-[90px]">
-                    {Math.floor(currentTime / 60)}:
-                    {Math.floor(currentTime % 60).toString().padStart(2, "0")}
-                    {" / "}
-                    {Math.floor(duration / 60)}:
-                    {Math.floor(duration % 60).toString().padStart(2, "0")}
-                </span>
-
-                {/* Mute */}
-                <button
-                    type="button"
-                    onClick={toggleMute}
-                    className="hover:text-gray-300 hover:scale-110 transition duration-150"
-                    title="Mute (M)"
-                >
-                    {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
-                </button>
-
-                {/* Volume Slider */}
-                <div className="relative w-16 h-1 bg-gray-600 rounded-full cursor-pointer">
-                    <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.1"
-                        value={isMuted ? 0 : volume}
-                        onChange={(e) => {
-                            const vol = parseFloat(e.target.value);
-                            setVolume(vol);
-                            if (videoRef.current) {
-                                videoRef.current.volume = vol;
-                                videoRef.current.muted = vol === 0;
-                                setIsMuted(vol === 0);
-                            }
-                        }}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    />
+                    {/* Scrubber Handle */}
                     <div
-                        className="h-full bg-red-500 rounded-full transition-[width] duration-100"
-                        style={{ width: `${isMuted ? 0 : volume * 100}%` }}
+                        className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-pink-500 rounded-full shadow transition-[left] duration-100 opacity-0 group-hover/bar:opacity-100"
+                        style={{ left: `calc(${progress}% - 7px)` }}
                     />
                 </div>
 
-                {/* Fullscreen */}
-                <button
-                    type="button"
-                    onClick={toggleFullScreen}
-                    className="hover:text-gray-300 hover:scale-110 transition duration-150"
-                    title="Fullscreen (F)"
-                >
-                    {isFullScreen ? <Minimize size={20} /> : <Maximize size={20} />}
-                </button>
-            </div>
+                {/* Lower Control Actions */}
+                <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                        {/* Play / Pause */}
+                        <button
+                            type="button"
+                            onClick={togglePlay}
+                            className="cursor-pointer hover:text-gray-300 hover:scale-110 transition duration-150 flex-shrink-0"
+                            title="Play/Pause (Space)"
+                        >
+                            {isPlaying ? <Pause size={20} fill="white" /> : <Play size={20} fill="white" />}
+                        </button>
 
+                        {/* Volume */}
+                        <div className="flex items-center gap-2 flex-shrink-0 group/vol">
+                            <button
+                                type="button"
+                                onClick={toggleMute}
+                                className="cursor-pointer hover:text-gray-300 hover:scale-110 transition duration-150"
+                                title="Mute (M)"
+                            >
+                                {isMuted || volume === 0 ? <VolumeX size={18} /> : <Volume2 size={18} />}
+                            </button>
+
+                            <div className="relative w-16 h-1 bg-white/30 rounded-full cursor-pointer">
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="1"
+                                    step="0.05"
+                                    value={isMuted ? 0 : volume}
+                                    onChange={(e) => {
+                                        const vol = parseFloat(e.target.value);
+                                        setVolume(vol);
+                                        if (videoRef.current) {
+                                            videoRef.current.volume = vol;
+                                            videoRef.current.muted = vol === 0;
+                                            setIsMuted(vol === 0);
+                                        }
+                                    }}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                    title="Volume (↑ / ↓)"
+                                />
+                                <div
+                                    className="h-full bg-white rounded-full pointer-events-none transition-[width] duration-100"
+                                    style={{ width: `${isMuted ? 0 : volume * 100}%` }}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Time */}
+                        <span className="text-xs text-gray-200 flex-shrink-0 tabular-nums">
+                            {formatTime(currentTime)} / {formatTime(duration)}
+                        </span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        {/* Autoplay next toggle */}
+                        {hasNext && (
+                            <button
+                                type="button"
+                                onClick={() => setAutoplayNext((v) => !v)}
+                                className={`cursor-pointer flex shrink-0 items-center w-9 h-5 rounded-full transition duration-200 relative ${
+                                    autoplayNext ? "bg-white" : "bg-white/25"
+                                }`}
+                                title="Autoplay next video"
+                            >
+                                <span
+                                    className={`absolute top-0.5 w-4 h-4 rounded-full flex items-center justify-center transition-all duration-200 ${
+                                        autoplayNext
+                                            ? "left-4 bg-black text-white"
+                                            : "left-0.5 bg-white text-black"
+                                    }`}
+                                >
+                                    <Play size={9} fill="currentColor" />
+                                </span>
+                            </button>
+                        )}
+
+                        {/* Playback speed badge */}
+                        <button
+                            type="button"
+                            onClick={() => setIsSettingsOpen((v) => !v)}
+                            className="cursor-pointer flex shrink-0 text-xs font-medium bg-white/20 hover:bg-white/30 rounded px-1.5 py-0.5 transition duration-150"
+                            title="Playback speed"
+                        >
+                            {playbackSpeed}x
+                        </button>
+
+                        {/* Settings gear + speed popover */}
+                        <div className="relative flex shrink-0" ref={settingsRef}>
+                            <button
+                                type="button"
+                                onClick={() => setIsSettingsOpen((v) => !v)}
+                                className="cursor-pointer hover:text-gray-300 hover:scale-110 transition duration-150"
+                                title="Settings"
+                            >
+                                <Settings size={18} />
+                            </button>
+
+                            {isSettingsOpen && (
+                                <div className="absolute bottom-9 right-0 bg-black/90 rounded-lg py-2 min-w-[110px] shadow-lg border border-white/10 z-50">
+                                    <p className="text-[11px] text-gray-400 px-3 pb-1">Speed</p>
+                                    {PLAYBACK_SPEEDS.map((speed) => (
+                                        <button
+                                            key={speed}
+                                            type="button"
+                                            onClick={() => changePlaybackSpeed(speed)}
+                                            className={`cursor-pointer w-full text-left text-sm px-3 py-1.5 transition duration-150 ${
+                                                speed === playbackSpeed
+                                                    ? "text-pink-400 font-medium"
+                                                    : "text-white hover:bg-white/10"
+                                            }`}
+                                        >
+                                            {speed}x
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Picture-in-picture */}
+                        <button
+                            type="button"
+                            onClick={togglePictureInPicture}
+                            className="cursor-pointer hover:text-gray-300 hover:scale-110 transition duration-150 flex-shrink-0"
+                            title="Picture-in-picture (I)"
+                        >
+                            <PictureInPicture2 size={18} />
+                        </button>
+
+                        {/* Fullscreen */}
+                        <button
+                            type="button"
+                            onClick={toggleFullScreen}
+                            className="cursor-pointer hover:text-gray-300 hover:scale-110 transition duration-150 flex-shrink-0"
+                            title="Fullscreen (F)"
+                        >
+                            {isFullScreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };

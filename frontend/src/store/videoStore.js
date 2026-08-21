@@ -385,52 +385,52 @@ const useVideoStore = create((set, get) => ({
 
     // ==========================================
     // Toggle Subscription (from a video's owner page)
-    // Returns true/false so callers doing an optimistic UI
-    // update know whether to keep it or revert it.
+    // POST /subscription/:channelId/subscribed
+    //
+    // Returns { success, isSubscribed, subscribersCount }.
+    // subscribersCount ALWAYS comes from the backend response —
+    // never computed locally with +1/-1 math. isSubscribed is
+    // predicted (the backend endpoint is a pure toggle with no
+    // "which way" info returned), matching whichever way the
+    // backend will actually flip it.
     // ==========================================
 
     toggleSubscription: async () => {
         try {
-            // Get the state from the store
             const state = useVideoStore.getState();
             const ownerId = state.selectedVideo?.owner?._id;
 
-            if (!ownerId) return false;
+            if (!ownerId) return { success: false };
+
+            const current = state.subscription;
+            const willBeSubscribed = !current.isSubscribed;
 
             // Subscribe/unsubscribe to the channel room for real-time updates
-            if (!state.subscription.isSubscribed) {
+            if (willBeSubscribed) {
                 subscribeToChannel(ownerId);
             } else {
                 unsubscribeFromChannel(ownerId);
             }
 
-            await axiosInstance.post(
+            const response = await axiosInstance.post(
                 `/subscription/${ownerId}/subscribed`
             );
 
-            // Toggle subscription state locally
-            const current = state.subscription;
-            const newIsSubscribed = !current.isSubscribed;
-            const newCount = current.isSubscribed
-                ? Math.max(0, current.subscribersCount - 1)
-                : current.subscribersCount + 1;
+            // Backend is the single source of truth for the count
+            const subscribersCount = response.data.data.subscribersCount;
 
             set({
                 subscription: {
-                    ...current,
-                    isSubscribed: newIsSubscribed,
-                    subscribersCount: newCount,
+                    isSubscribed: willBeSubscribed,
+                    subscribersCount,
                 },
             });
 
-            // Keep socket room in sync with actual subscription state
-            if (newIsSubscribed) {
-                subscribeToChannel(ownerId);
-            } else {
-                unsubscribeFromChannel(ownerId);
-            }
-
-            return true;
+            return {
+                success: true,
+                isSubscribed: willBeSubscribed,
+                subscribersCount,
+            };
 
         } catch (error) {
             console.error(
@@ -438,7 +438,7 @@ const useVideoStore = create((set, get) => ({
                 error
             );
 
-            return false;
+            return { success: false };
         }
     },
 
@@ -601,10 +601,13 @@ const useVideoStore = create((set, get) => ({
     // ==========================================
     // Toggle Video Like
     // POST /likes/:videoId/like
+    //
+    // Returns { success, liked, likesCount }. likesCount ALWAYS
+    // comes from the backend response — this is the only place
+    // that should ever write selectedVideo.likesCount, and it
+    // never adds/subtracts locally.
     // ==========================================
 
-    // Returns true/false so callers doing an optimistic UI
-    // update know whether to keep it or revert it.
     toggleVideoLike: async () => {
 
         try {
@@ -612,7 +615,7 @@ const useVideoStore = create((set, get) => ({
             const state = useVideoStore.getState();
             const videoId = state.selectedVideoId;
 
-            if (!videoId) return false;
+            if (!videoId) return { success: false };
 
             const response = await axiosInstance.post(
                 `/likes/${videoId}/like`
@@ -624,16 +627,11 @@ const useVideoStore = create((set, get) => ({
             set((prev) => ({
                 isLiked: liked,
                 selectedVideo: prev.selectedVideo
-                    ? {
-                        ...prev.selectedVideo,
-                        likesCount: liked
-                            ? prev.selectedVideo.likesCount + 1
-                            : Math.max(0, prev.selectedVideo.likesCount - 1),
-                    }
+                    ? { ...prev.selectedVideo, likesCount }
                     : prev.selectedVideo,
             }));
 
-            return true;
+            return { success: true, liked, likesCount };
 
         } catch (error) {
 
@@ -642,7 +640,7 @@ const useVideoStore = create((set, get) => ({
                 error
             );
 
-            return false;
+            return { success: false };
         }
     },
 
@@ -781,19 +779,28 @@ const useVideoStore = create((set, get) => ({
     // ==========================================
     // Toggle Comment Like
     // POST /likes/:commentId/Commentlike
+    //
+    // Returns { success, liked, likesCount }. Normalized to the
+    // `likesCount` key (matching what the component reads) no
+    // matter which key name the backend response uses — do not
+    // reintroduce a separate `commentLikesCount` field, that
+    // name mismatch was the original bug.
     // ==========================================
 
     toggleCommentLike: async (commentId) => {
 
         try {
 
-            if (!commentId) return;
+            if (!commentId) return { success: false };
 
             const response = await axiosInstance.post(
                 `/likes/${commentId}/Commentlike`
             );
 
             const liked = response.data.data.like;
+            const likesCount =
+                response.data.data.likesCount ??
+                response.data.data.commentLikesCount;
 
             set((prev) => ({
                 comments: prev.comments.map((c) =>
@@ -801,13 +808,13 @@ const useVideoStore = create((set, get) => ({
                         ? {
                             ...c,
                             isLiked: liked,
-                            commentLikesCount: liked
-                                ? (c.commentLikesCount || 0) + 1
-                                : Math.max(0, (c.commentLikesCount || 0) - 1),
+                            likesCount: likesCount ?? c.likesCount,
                         }
                         : c
                 ),
             }));
+
+            return { success: true, liked, likesCount };
 
         } catch (error) {
 
@@ -815,6 +822,8 @@ const useVideoStore = create((set, get) => ({
                 "Error toggling comment like:",
                 error
             );
+
+            return { success: false };
         }
     },
 

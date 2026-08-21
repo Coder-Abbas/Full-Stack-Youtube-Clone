@@ -204,6 +204,67 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
 })
 
 
+const getTotalLikesOfVideo = asyncHandler(async (req, res) => {
+    //1. get the id from params
+    const { videoId } = req.params;
+    //validate
+    if(!isValidObjectId(videoId)){
+        throw new APIError(400, "Invalid video id")
+    }
+
+    //2. get the total likes of the video
+    const totalLikes = await Like.countDocuments({ video: videoId });
+
+    //3. send response
+    return res.status(200)
+        .json(
+            new ApiResponse(200, { totalLikes }, "Total likes fetched successfully")
+        )
+
+})
+
+
+const getTotalLikesOfComment = asyncHandler(async (req, res) => {
+    //1. get the id from params
+    const { commentId } = req.params;
+
+    //validate
+    if(!isValidObjectId(commentId)){
+        throw new APIError(400, "Invalid comment id")
+    }
+
+    //2. get the total likes of the comment
+    const totalLikes = await Like.countDocuments({ comment: commentId });
+
+    //3. send response
+    return res.status(200)
+        .json(
+            new ApiResponse(200, { totalLikes }, "Total likes fetched successfully")
+        )
+
+})
+
+
+
+const getTotalLikesOfTweet = asyncHandler(async (req, res) => {
+    //1. get the id from params
+    const { tweetId } = req.params;
+    //validate
+    if(!isValidObjectId(tweetId)){
+        throw new APIError(400, "Invalid tweet id")
+    }
+
+    //2. get the total likes of the tweet
+    const totalLikes = await Like.countDocuments({ tweet: tweetId });
+
+    //3. send response
+    return res.status(200)
+        .json(
+            new ApiResponse(200, { totalLikes }, "Total likes fetched successfully")
+        )
+
+})
+
 
 const getLikeVideos = asyncHandler(async (req, res) => {
     //1. get the user id
@@ -248,5 +309,8 @@ export {
     toggleVideoLike,
     toggleTweetLike,
     toggleCommentLike,
-    getLikeVideos
+    getLikeVideos,
+    getTotalLikesOfVideo,
+    getTotalLikesOfComment,
+    getTotalLikesOfTweet
 }
