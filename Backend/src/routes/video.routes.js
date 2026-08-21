@@ -10,7 +10,9 @@ import {
     updateVideo,
     getViews,
     getMyVideos,
-    getSubscribedVideos
+    getSubscribedVideos,
+    toggleWatchLater,
+    getWatchLaterVideos
 } from "../controllers/videos.controllers.js";
 
 
@@ -46,6 +48,16 @@ router.route("/toggle/publish/:videoId").patch(
 router.route("/published").get(
     optionalVerifyJWT,
     getAllPublishedVideos
+)
+
+router.route("/watch-later/toggle/:videoId").patch(
+    verifyJWT,
+    toggleWatchLater
+)
+
+router.route("/watch-later").get(
+    verifyJWT,
+    getWatchLaterVideos
 )
 
 

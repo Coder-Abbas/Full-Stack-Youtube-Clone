@@ -12,6 +12,8 @@ import {
     X,
     Copy,
     Check,
+    Clock,
+    Clock3,
 } from "lucide-react";
 
 import useVideoStore from "../store/videoStore";
@@ -53,6 +55,8 @@ const SelectVideo = () => {
         updateComment,
         deleteComment,
         toggleCommentLike,
+        toggleWatchLater,
+        watchLaterVideos,
     } = useVideoStore();
 
     // Get store setters for real-time updates
@@ -352,94 +356,109 @@ const SelectVideo = () => {
     // ==========================================
     // Real-time updates via Socket.io
     // ==========================================
+    // Ref to track current video ID without re-binding listeners
+    const selectedVideoIdRef = useRef(selectedVideoId);
+
+    useEffect(() => {
+        selectedVideoIdRef.current = selectedVideoId;
+    }, [selectedVideoId]);
+
     useEffect(() => {
         const socket = getSocket();
         if (!socket) return;
 
         // Handle real-time video like updates from other users
         const handleVideoLikeUpdate = (data) => {
-            if (data?.videoId === selectedVideoId && selectedVideo) {
+            const id = selectedVideoIdRef.current;
+            if (data?.videoId !== id) return;
+
+            // Get latest selectedVideo from store and update its likesCount
+            const currentVideo = useVideoStore.getState().selectedVideo;
+            if (currentVideo) {
                 setSelectedVideoData({
-                    ...selectedVideo,
+                    ...currentVideo,
                     likesCount: data.likesCount,
                 });
             }
+
+            // Also update local like count state
+            setLocalLikesCount(data.likesCount);
+            likeConfirmedRef.current = {
+                liked: data.isLiked ?? likeConfirmedRef.current.liked,
+                count: data.likesCount,
+            };
         };
 
         // Handle real-time comment like updates from other users
         const handleCommentLikeUpdate = (data) => {
-            if (data?.videoId === selectedVideoId) {
-                setComments((prev) =>
-                    prev.map((c) =>
-                        c._id === data.commentId
-                            ? {
-                                ...c,
-                                likesCount: data.likesCount,
-                            }
-                            : c
-                    )
-                );
-            }
+            if (data?.videoId !== selectedVideoIdRef.current) return;
+            setComments((prev) =>
+                prev.map((c) =>
+                    c._id === data.commentId
+                        ? {
+                            ...c,
+                            likesCount: data.likesCount,
+                            isLiked: data.isLiked ?? c.isLiked,
+                        }
+                        : c
+                )
+            );
         };
 
         // Handle real-time new comments from other users
         const handleNewComment = (data) => {
-            if (data?.videoId === selectedVideoId && data?.comment) {
-                const { comment: newComment } = data;
-                // Convert avatar to https
-                const converted = {
-                    ...newComment,
-                    owner: {
-                        ...newComment.owner,
-                        avatar: newComment.owner?.avatar ?
-                            (newComment.owner.avatar.startsWith("http://")
-                                ? newComment.owner.avatar.replace("http://", "https://")
-                                : newComment.owner.avatar)
-                            : newComment.owner?.avatar,
-                    },
-                };
+            if (data?.videoId !== selectedVideoIdRef.current || !data?.comment) return;
+            const { comment: newComment } = data;
+            // Convert avatar to https
+            const converted = {
+                ...newComment,
+                owner: {
+                    ...newComment.owner,
+                    avatar: newComment.owner?.avatar ?
+                        (newComment.owner.avatar.startsWith("http://")
+                            ? newComment.owner.avatar.replace("http://", "https://")
+                            : newComment.owner.avatar)
+                        : newComment.owner?.avatar,
+                },
+            };
 
-                setComments((prev) => {
-                    // Avoid duplicates
-                    if (prev.some((c) => c._id === converted._id)) {
-                        return prev;
-                    }
-                    return [converted, ...prev];
-                });
-            }
+            setComments((prev) => {
+                // Avoid duplicates - backend also adds the comment via store addComment
+                if (prev.some((c) => c._id === converted._id)) {
+                    return prev;
+                }
+                return [converted, ...prev];
+            });
         };
 
         // Handle comment updates from other users
         const handleUpdateComment = (data) => {
-            if (data?.videoId === selectedVideoId && data?.comment) {
-                const { comment: updatedComment } = data;
-                setComments((prev) =>
-                    prev.map((c) =>
-                        c._id === updatedComment._id
-                            ? {
-                                ...c,
-                                ...updatedComment,
-                            }
-                            : c
-                    )
-                );
-            }
+            if (data?.videoId !== selectedVideoIdRef.current || !data?.comment) return;
+            const { comment: updatedComment } = data;
+            setComments((prev) =>
+                prev.map((c) =>
+                    c._id === updatedComment._id
+                        ? {
+                            ...c,
+                            ...updatedComment,
+                        }
+                        : c
+                )
+            );
         };
 
         // Handle comment deletions from other users
         const handleDeleteComment = (data) => {
-            if (data?.videoId === selectedVideoId && data?.commentId) {
-                setComments((prev) =>
-                    prev.filter((c) => c._id !== data.commentId)
-                );
-            }
+            if (data?.videoId !== selectedVideoIdRef.current || !data?.commentId) return;
+            setComments((prev) =>
+                prev.filter((c) => c._id !== data.commentId)
+            );
         };
 
         // Handle video updates (title, description, views)
         const handleVideoUpdate = (data) => {
-            if (data?.videoId === selectedVideoId && data?.video) {
-                setSelectedVideoData(data.video);
-            }
+            if (data?.videoId !== selectedVideoIdRef.current || !data?.video) return;
+            setSelectedVideoData(data.video);
         };
 
         // Register socket event listeners
@@ -459,7 +478,8 @@ const SelectVideo = () => {
             socket.off("delete-comment", handleDeleteComment);
             socket.off("video-update", handleVideoUpdate);
         };
-    }, [selectedVideoId, selectedVideo]);
+        // Empty deps - register once and use refs to avoid re-binding
+    }, []);
 
 
     // ==========================================
@@ -595,6 +615,24 @@ const SelectVideo = () => {
         } catch (err) {
             console.error("Failed to copy link:", err);
         }
+    };
+
+
+    // ==========================================
+    // Watch Later
+    // ==========================================
+
+    const isInWatchLater = watchLaterVideos.some(
+        (v) => (v._id || v) === selectedVideo._id
+    );
+
+    const handleWatchLaterClick = async () => {
+        if (!authUser) {
+            navigate("/login");
+            return;
+        }
+
+        await toggleWatchLater(selectedVideo._id);
     };
 
 
@@ -779,6 +817,28 @@ const SelectVideo = () => {
                                     >
                                         <Share2 size={18} />
                                         Share
+                                    </button>
+
+                                    {/* Watch Later */}
+                                    <button
+                                        type="button"
+                                        onClick={handleWatchLaterClick}
+                                        className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium cursor-pointer transition duration-200 ${isInWatchLater
+                                            ? "bg-gray-300 text-gray-900 hover:bg-gray-400"
+                                            : "bg-gray-100 hover:bg-gray-200"
+                                            }`}
+                                    >
+                                        {isInWatchLater ? (
+                                            <>
+                                                <Clock3 size={18} fill="currentColor" />
+                                                Saved
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Clock size={18} />
+                                                Watch Later
+                                            </>
+                                        )}
                                     </button>
 
                                     {/* Download */}

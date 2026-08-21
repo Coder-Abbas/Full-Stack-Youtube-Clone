@@ -244,14 +244,6 @@ const useVideoStore = create((set, get) => ({
     // ==========================================
     // Subscribed Channels + Their Videos
     // GET /videos/subscribed-videos
-    //
-    // Backend shape:
-    // data.videos        -> array of video docs
-    // data.subscriptions -> array of subscription docs:
-    //   { _id: subscriptionId, subscriber, channel: { _id, username, fullName, avatar }, ... }
-    //
-    // The channel's own data lives under `.channel`, NOT at the
-    // top level of the subscription doc — so we map/flatten it here.
     // ==========================================
 
     subscribedChannels: [],
@@ -322,9 +314,6 @@ const useVideoStore = create((set, get) => ({
 
     // ==========================================
     // Recommended Videos (shown in the Watch page sidebar)
-    // Reuses /videos/published since there's no dedicated
-    // recommendation endpoint yet — just excludes the video
-    // currently being watched.
     // ==========================================
 
     recommendedVideos: [],
@@ -386,13 +375,6 @@ const useVideoStore = create((set, get) => ({
     // ==========================================
     // Toggle Subscription (from a video's owner page)
     // POST /subscription/:channelId/subscribed
-    //
-    // Returns { success, isSubscribed, subscribersCount }.
-    // subscribersCount ALWAYS comes from the backend response —
-    // never computed locally with +1/-1 math. isSubscribed is
-    // predicted (the backend endpoint is a pure toggle with no
-    // "which way" info returned), matching whichever way the
-    // backend will actually flip it.
     // ==========================================
 
     toggleSubscription: async () => {
@@ -445,10 +427,6 @@ const useVideoStore = create((set, get) => ({
     // ==========================================
     // Toggle Channel Subscription (from the Subscriptions page)
     // POST /subscription/:channelId/subscribed
-    //
-    // Unlike toggleSubscription above, this always means "unsubscribe"
-    // in context, since this page only lists channels already
-    // subscribed to — so we just remove it from the list on success.
     // ==========================================
 
     toggleChannelSubscription: async (channelId) => {
@@ -601,11 +579,6 @@ const useVideoStore = create((set, get) => ({
     // ==========================================
     // Toggle Video Like
     // POST /likes/:videoId/like
-    //
-    // Returns { success, liked, likesCount }. likesCount ALWAYS
-    // comes from the backend response — this is the only place
-    // that should ever write selectedVideo.likesCount, and it
-    // never adds/subtracts locally.
     // ==========================================
 
     toggleVideoLike: async () => {
@@ -621,8 +594,19 @@ const useVideoStore = create((set, get) => ({
                 `/likes/${videoId}/like`
             );
 
-            const liked = response.data.data.like;
-            const likesCount = response.data.data.likesCount;
+            const liked = Boolean(response.data.data.like);
+
+            // Backend may or may not return likesCount directly.
+            // If not provided, derive from current count ±1 to keep UI consistent.
+            let likesCount = response.data.data.likesCount
+                ?? response.data.data.totalLikes;
+
+            if (likesCount == null) {
+                likesCount = Math.max(
+                    0,
+                    (state.selectedVideo?.likesCount ?? 0) + (liked ? 1 : -1)
+                );
+            }
 
             set((prev) => ({
                 isLiked: liked,
@@ -675,9 +659,13 @@ const useVideoStore = create((set, get) => ({
                 },
             };
 
-            set((prev) => ({
-                comments: [comment, ...prev.comments],
-            }));
+            set((prev) => {
+                // Avoid duplicates - if this comment already exists (e.g. via socket), don't add again
+                if (prev.comments.some((c) => c._id === comment._id)) {
+                    return prev;
+                }
+                return { comments: [comment, ...prev.comments] };
+            });
 
             return true;
 
@@ -779,12 +767,6 @@ const useVideoStore = create((set, get) => ({
     // ==========================================
     // Toggle Comment Like
     // POST /likes/:commentId/Commentlike
-    //
-    // Returns { success, liked, likesCount }. Normalized to the
-    // `likesCount` key (matching what the component reads) no
-    // matter which key name the backend response uses — do not
-    // reintroduce a separate `commentLikesCount` field, that
-    // name mismatch was the original bug.
     // ==========================================
 
     toggleCommentLike: async (commentId) => {
@@ -797,10 +779,24 @@ const useVideoStore = create((set, get) => ({
                 `/likes/${commentId}/Commentlike`
             );
 
-            const liked = response.data.data.like;
-            const likesCount =
+            const liked = Boolean(response.data.data.like);
+
+            // Backend may or may not return likesCount.
+            // If not provided, derive from current count ±1 to keep UI consistent.
+            let likesCount =
                 response.data.data.likesCount ??
-                response.data.data.commentLikesCount;
+                response.data.data.commentLikesCount ??
+                response.data.data.totalLikes;
+
+            if (likesCount == null) {
+                const currentComment = get().comments.find(
+                    (c) => c._id === commentId
+                );
+                likesCount = Math.max(
+                    0,
+                    (currentComment?.likesCount ?? 0) + (liked ? 1 : -1)
+                );
+            }
 
             set((prev) => ({
                 comments: prev.comments.map((c) =>
@@ -823,6 +819,123 @@ const useVideoStore = create((set, get) => ({
                 error
             );
 
+            return { success: false };
+        }
+    },
+
+
+    // ==========================================
+    // Watch Later
+    // ==========================================
+
+    watchLaterVideos: [],
+    isWatchLaterLoading: false,
+    watchLaterError: null,
+
+    // Toggle a video in watch later
+    // PATCH /videos/watch-later/toggle/:videoId
+    toggleWatchLater: async (videoId) => {
+        try {
+            if (!videoId) return { success: false };
+
+            // Get current state before toggling
+            const currentState = get();
+            const wasSaved = currentState.watchLaterVideos.some(
+                (v) => (v._id || v) === videoId
+            );
+
+            const response = await axiosInstance.patch(
+                `/videos/watch-later/toggle/${videoId}`
+            );
+
+            const data = response.data?.data;
+            const message = response.data?.message || "";
+
+            // Backend returns { saved: true/false } where true = added, false = removed
+            const isSaved = data?.saved ?? !wasSaved;
+
+            // Update local list immediately
+            if (isSaved) {
+                // Add to list if we have the selected video data
+                const selectedVideo = currentState.selectedVideo;
+                if (selectedVideo && selectedVideo._id === videoId) {
+                    set((prev) => {
+                        if (prev.watchLaterVideos.some((v) => (v._id || v) === videoId)) {
+                            return prev;
+                        }
+                        return { watchLaterVideos: [selectedVideo, ...prev.watchLaterVideos] };
+                    });
+                }
+            } else {
+                // Remove from list
+                set((prev) => ({
+                    watchLaterVideos: prev.watchLaterVideos.filter(
+                        (v) => (v._id || v) !== videoId
+                    ),
+                }));
+            }
+
+            return {
+                success: true,
+                isSaved,
+                message,
+                data,
+            };
+
+        } catch (error) {
+            console.error("Error toggling watch later:", error);
+            return {
+                success: false,
+                message: error?.response?.data?.message || "Failed to update watch later",
+            };
+        }
+    },
+
+    // Get all watch later videos
+    // GET /videos/watch-later
+    getWatchLaterVideos: async () => {
+        try {
+            set({ isWatchLaterLoading: true, watchLaterError: null });
+
+            const response = await axiosInstance.get("/videos/watch-later");
+
+            // Backend returns array of video IDs or video objects
+            const rawVideos = response.data.data || [];
+
+            // Normalize to video objects (handle both array of IDs and array of video objects)
+            const videos = rawVideos
+                .map((item) => {
+                    const video = item?.video || item;
+                    if (!video || typeof video !== "object") return null;
+                    return {
+                        ...video,
+                        thumbnail: toHttps(video.thumbnail),
+                        videoFile: toHttps(video.videoFile),
+                        owner: video.owner
+                            ? {
+                                ...video.owner,
+                                avatar: toHttps(video.owner.avatar),
+                            }
+                            : video.owner,
+                    };
+                })
+                .filter(Boolean);
+
+            set({
+                watchLaterVideos: videos,
+                isWatchLaterLoading: false,
+            });
+
+            return { success: true, videos };
+
+        } catch (error) {
+            console.error("Error fetching watch later videos:", error);
+            set({
+                watchLaterVideos: [],
+                isWatchLaterLoading: false,
+                watchLaterError:
+                    error?.response?.data?.message || "Failed to fetch watch later videos",
+            });
             return { success: false };
         }
     },

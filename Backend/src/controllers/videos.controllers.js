@@ -216,6 +216,105 @@ const getSubscribedVideos = asyncHandler(async (req, res) => {
 
 })
 
+
+const toggleWatchLater = asyncHandler(async (req, res) => {
+ 
+    // 1. get the user id from req.user
+    const userId = req.user?._id;
+ 
+    // validate
+    if (!userId || !isValidObjectId(userId)) {
+        throw new APIError(400, "Invalid user ID");
+    }
+ 
+    // 2. get the video id
+    const { videoId } = req.params;
+ 
+    if (!isValidObjectId(videoId)) {
+        throw new APIError(400, "Invalid video ID");
+    }
+ 
+    // 3. confirm the video actually exists
+    const video = await Video.findById(videoId);
+ 
+    if (!video) {
+        throw new APIError(404, "Video not found");
+    }
+ 
+    // 4. check whether it's already in the user's watch-later list
+    const user = await User.findById(userId);
+ 
+    if (!user) {
+        throw new APIError(404, "User not found");
+    }
+ 
+    const alreadySaved = user.watchLater?.some(
+        (id) => id.toString() === videoId
+    );
+ 
+    if (alreadySaved) {
+        // remove it
+        await User.findByIdAndUpdate(userId, {
+            $pull: { watchLater: videoId },
+        });
+    } else {
+        // add it
+        await User.findByIdAndUpdate(userId, {
+            $addToSet: { watchLater: videoId },
+        });
+    }
+ 
+    // 5. send response
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            { saved: !alreadySaved },
+            alreadySaved
+                ? "Removed from watch later"
+                : "Added to watch later"
+        )
+    );
+});
+ 
+ 
+// ==========================================
+// Get Watch Later Videos
+// GET /videos/watch-later
+// ==========================================
+ 
+const getWatchLaterVideos = asyncHandler(async (req, res) => {
+ 
+    // 1. get the user id from req.user
+    const userId = req.user?._id;
+ 
+    // validate
+    if (!userId || !isValidObjectId(userId)) {
+        throw new APIError(400, "Invalid user ID");
+    }
+ 
+    // 2. populate the watchLater list with full video docs
+    const user = await User.findById(userId).populate({
+        path: "watchLater",
+        populate: {
+            path: "owner",
+            select: "avatar fullName username",
+        },
+    });
+ 
+    if (!user) {
+        throw new APIError(404, "User not found");
+    }
+ 
+    // 3. send response
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            user.watchLater || [],
+            "Watch later videos fetched successfully"
+        )
+    );
+});
+
 const getAllPublishedVideos = asyncHandler(async (req, res) => {
 
     // 1. Get pagination information
@@ -696,6 +795,8 @@ export {
     deleteVideo,
     updateVideo,
     getViews,
-    getSubscribedVideos
+    getSubscribedVideos,
+    toggleWatchLater,
+    getWatchLaterVideos
 
 }

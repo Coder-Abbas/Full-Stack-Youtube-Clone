@@ -3,6 +3,10 @@ import useAuthStore from "../store/authStore";
 
 let socket = null;
 
+// Queue of room-join events to emit once the socket connects
+let pendingRoomJoins = new Set();
+let pendingChannelJoins = new Set();
+
 /**
  * Get the current auth token from localStorage or useAuthStore
  * Note: The access token is stored in httpOnly cookies on the backend,
@@ -24,6 +28,25 @@ const getAuthToken = () => {
 };
 
 /**
+ * Flush pending room joins once the socket is connected
+ */
+const flushPendingJoins = () => {
+    if (!socket?.connected) return;
+
+    // Join all pending video rooms
+    pendingRoomJoins.forEach((videoId) => {
+        socket.emit("join-video-room", videoId);
+    });
+    pendingRoomJoins.clear();
+
+    // Join all pending channel rooms
+    pendingChannelJoins.forEach((channelId) => {
+        socket.emit("subscribe-channel", channelId);
+    });
+    pendingChannelJoins.clear();
+};
+
+/**
  * Initialize the Socket.io client connection
  */
 export const initSocket = () => {
@@ -42,10 +65,17 @@ export const initSocket = () => {
         withCredentials: true,
         auth: token ? { token } : {},
         transports: ["websocket", "polling"],
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        timeout: 20000,
     });
 
     socket.on("connect", () => {
         console.log("Socket connected:", socket.id);
+        // Emit any pending room joins now that we're connected
+        flushPendingJoins();
     });
 
     socket.on("disconnect", (reason) => {
@@ -76,16 +106,28 @@ export const disconnectSocket = () => {
     if (socket) {
         socket.disconnect();
         socket = null;
+        pendingRoomJoins.clear();
+        pendingChannelJoins.clear();
     }
 };
 
 /**
  * Join the room for a specific video
+ * If socket isn't connected yet, queue it for after connection
  */
 export const joinVideoRoom = (videoId) => {
     const s = getSocket();
-    if (s?.connected && videoId) {
+    if (!videoId) return;
+
+    if (s?.connected) {
         s.emit("join-video-room", videoId);
+    } else {
+        // Queue it until the socket connects
+        pendingRoomJoins.add(videoId);
+        // Make sure the socket is trying to connect
+        if (!s?.connected) {
+            s?.connect?.();
+        }
     }
 };
 
@@ -94,18 +136,32 @@ export const joinVideoRoom = (videoId) => {
  */
 export const leaveVideoRoom = (videoId) => {
     const s = getSocket();
-    if (s?.connected && videoId) {
+    if (!videoId) return;
+
+    // Remove from pending queue
+    pendingRoomJoins.delete(videoId);
+
+    if (s?.connected) {
         s.emit("leave-video-room", videoId);
     }
 };
 
 /**
  * Subscribe to a channel room
+ * If socket isn't connected yet, queue it for after connection
  */
 export const subscribeToChannel = (channelId) => {
     const s = getSocket();
-    if (s?.connected && channelId) {
+    if (!channelId) return;
+
+    if (s?.connected) {
         s.emit("subscribe-channel", channelId);
+    } else {
+        // Queue it until the socket connects
+        pendingChannelJoins.add(channelId);
+        if (!s?.connected) {
+            s?.connect?.();
+        }
     }
 };
 
@@ -114,7 +170,12 @@ export const subscribeToChannel = (channelId) => {
  */
 export const unsubscribeFromChannel = (channelId) => {
     const s = getSocket();
-    if (s?.connected && channelId) {
+    if (!channelId) return;
+
+    // Remove from pending queue
+    pendingChannelJoins.delete(channelId);
+
+    if (s?.connected) {
         s.emit("unsubscribe-channel", channelId);
     }
 };

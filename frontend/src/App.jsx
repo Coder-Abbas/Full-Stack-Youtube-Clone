@@ -16,6 +16,7 @@ import useVideoStore from './store/videoStore'
 import useChannelStore from './store/channelStore'
 import WatchHistory from './pages/watchHistory'
 import Subscription from "./pages/subscription"
+import WatchLater from './pages/watchLater'
 
 const App = () => {
   const { authUser } = useAuthStore();
@@ -132,6 +133,7 @@ const App = () => {
         <Route path="/settings" element={<Setting />} />
         <Route path="/watch-history" element={<WatchHistory />} />
         <Route path="/subscription" element={<Subscription />} />
+        <Route path="/watch-later" element={<WatchLater />} />
       </Routes>
     </div>
   )
