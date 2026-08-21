@@ -1,4 +1,4 @@
-import mongoose, {Schema} from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
 
 
 
@@ -26,7 +26,7 @@ const videoSchema = new Schema(
             type: Number,
             required: true,
         },
-        views:{
+        views: {
             type: Number,
             default: 0
         },
@@ -42,6 +42,7 @@ const videoSchema = new Schema(
             type: Schema.Types.ObjectId,
             ref: "User"
         },
+        
 
     },
     {
