@@ -413,20 +413,17 @@ const getSelectedVideo = asyncHandler(async (req, res) => {
     // ==========================================
 
     if (req.user) {
-        // Remove any existing entry for this video first,
-        // so re-watching moves it back to the top instead
-        // of creating a duplicate
-        await User.findByIdAndUpdate(req.user._id, {
-            $pull: { watchHistory: { video: videoId } }
-        });
-
-        // Push to the front (position 0) since the frontend
-        // will want newest-first ordering
+        // Store a NEW entry for every viewing session so the
+        // watch history keeps distinct timestamps and can be
+        // grouped by day (Today / Yesterday / older) on the
+        // frontend. $slice keeps only the most recent 100
+        // sessions to bound storage growth.
         await User.findByIdAndUpdate(req.user._id, {
             $push: {
                 watchHistory: {
                     $each: [{ video: videoId, watchedAt: new Date() }],
-                    $position: 0
+                    $position: 0,
+                    $slice: -100
                 }
             }
         });

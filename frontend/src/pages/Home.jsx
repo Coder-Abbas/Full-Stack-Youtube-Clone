@@ -4,9 +4,11 @@ import Navbar from "../components/navbar/navbar";
 import Sidebar from "../components/sidebar";
 import HomePageCard from "../components/videoCards/homePageCard";
 import LoadingCards from "../components/loadingCards";
+import PlaylistCard from "../components/playlist/PlaylistCard";
 
 import useVideoStore from "../store/videoStore";
 import useChannelStore from "../store/channelStore";
+import usePlaylistStore from "../store/playlistStore";
 
 
 const Home = () => {
@@ -28,6 +30,11 @@ const Home = () => {
         channelUpdatedVersion,
     } = useChannelStore();
 
+    const {
+        randomPlaylists,
+        fetchRandomPlaylists,
+    } = usePlaylistStore();
+
 
     // ==========================================
     // Sidebar
@@ -36,6 +43,15 @@ const Home = () => {
     const toggleSidebar = () => {
         setIsSidebarOpen((prev) => !prev);
     };
+
+
+    // ==========================================
+    // Random playlists (homepage discovery)
+    // ==========================================
+
+    useEffect(() => {
+        fetchRandomPlaylists(8);
+    }, [fetchRandomPlaylists]);
 
 
     // ==========================================
@@ -99,6 +115,27 @@ const Home = () => {
         ? videos
         : [];
 
+    // Merge playlists inline into the feed (every 8 videos) so they
+    // appear among the videos instead of as a separate section.
+    const displayList = (() => {
+        if (!randomPlaylists.length) {
+            return videoList.map((v) => ({ kind: "video", data: v }));
+        }
+        const merged = [];
+        let pIdx = 0;
+        videoList.forEach((video, i) => {
+            merged.push({ kind: "video", data: video });
+            if ((i + 1) % 8 === 0 && pIdx < randomPlaylists.length) {
+                merged.push({ kind: "playlist", data: randomPlaylists[pIdx] });
+                pIdx++;
+            }
+        });
+        while (pIdx < randomPlaylists.length) {
+            merged.push({ kind: "playlist", data: randomPlaylists[pIdx] });
+            pIdx++;
+        }
+        return merged;
+    })();
 
     return (
 
@@ -269,14 +306,19 @@ const Home = () => {
                                     "
                                 >
 
-                                    {videoList.map((video) => (
-
-                                        <HomePageCard
-                                            key={video._id}
-                                            video={video}
-                                        />
-
-                                    ))}
+                                    {displayList.map((item) =>
+                                        item.kind === "video" ? (
+                                            <HomePageCard
+                                                key={item.data._id}
+                                                video={item.data}
+                                            />
+                                        ) : (
+                                            <PlaylistCard
+                                                key={item.data._id}
+                                                playlist={item.data}
+                                            />
+                                        )
+                                    )}
 
                                 </div>
 

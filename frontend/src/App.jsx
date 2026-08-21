@@ -14,6 +14,8 @@ import WatchHistory from './pages/watchHistory'
 import Subscription from "./pages/subscription"
 import WatchLater from './pages/watchLater'
 import SearchPage from "./pages/searchPage";
+import Playlists from "./pages/Playlists";
+import PlaylistDetail from "./pages/PlaylistDetail";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 // Routes that require an authenticated user
@@ -25,6 +27,7 @@ const protectedRoutes = [
     { path: "/watch-history", element: <WatchHistory /> },
     { path: "/subscription", element: <Subscription /> },
     { path: "/watch-later", element: <WatchLater /> },
+    { path: "/playlists", element: <Playlists /> },
 ];
 
 const App = () => {
@@ -38,6 +41,7 @@ const App = () => {
         <Route path="/register" element={<Register />} />
         <Route path="/channel/:username" element={<ChannelPage />} />
         <Route path="/search" element={<SearchPage />} />
+        <Route path="/playlist/:playlistId" element={<PlaylistDetail />} />
 
         {protectedRoutes.map(({ path, element }) => (
             <Route

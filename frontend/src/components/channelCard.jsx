@@ -7,7 +7,7 @@ const ChannelCard = ({ channel }) => {
 
     return (
         <Link
-            to={`/channel/${channel._id}`}
+            to={`/channel/${channel.username}`}
             onClick={() => setSelectedChannel(channel)}
             className="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition"
         >

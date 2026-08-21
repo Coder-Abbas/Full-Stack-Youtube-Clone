@@ -441,14 +441,15 @@ const WatchHistory = () => {
                         groupedHistory.map((group) => (
                             <div
                                 key={group.label}
-                                className="mb-8"
+                                className="mb-10"
                             >
                                 <h2
                                     className="
                                         text-lg
                                         font-semibold
                                         text-gray-800
-                                        mb-3
+                                        mb-4
+                                        px-1
                                     "
                                 >
                                     {group.label}
@@ -460,14 +461,14 @@ const WatchHistory = () => {
                                         grid-cols-1
                                         sm:grid-cols-2
                                         lg:grid-cols-3
-                                        xl:grid-cols-3
-                                        gap-1
+                                        xl:grid-cols-4
+                                        gap-4
                                     "
                                 >
-                                    {group.videos.map((video) => (
+                                    {group.videos.map((entry) => (
                                         <HomePageCard
-                                            key={video._id}
-                                            video={video}
+                                            key={`${entry.video?._id}-${entry.watchedAt}`}
+                                            video={entry.video}
                                         />
                                     ))}
                                 </div>

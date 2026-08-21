@@ -46,6 +46,7 @@ import subscriptionRoutes from "./routes/subscription.routes.js"
 import likeRoutes from "./routes/like.routes.js";
 import commentRoutes from "./routes/comment.routes.js";
 import searchRouter from "./routes/search.routes.js";
+import playlistRouter from "./routes/playlist.routes.js";
 
 
 
@@ -60,6 +61,37 @@ app.use(
     "/api/v1/search",
     searchRouter
 );
+app.use(
+    "/api/v1/playlists",
+    playlistRouter
+);
+
+
+// ==========================================
+// Global error-handling middleware
+// Converts thrown errors (including APIError from
+// controllers/middlewares) into a clean JSON
+// response instead of Express's default HTML
+// stack trace. Must be the LAST app.use().
+// ==========================================
+
+app.use((err, req, res, next) => {
+    const statusCode = err?.statusCode || err?.status || 500;
+    const message = err?.message || "Internal Server Error";
+
+    if (res.headersSent) {
+        return next(err);
+    }
+
+    res.status(statusCode).json({
+        success: false,
+        statusCode,
+        message,
+        ...(process.env.NODE_ENV === "development" && err?.stack
+            ? { stack: err.stack }
+            : {}),
+    });
+});
 
 
 export { app };

@@ -649,79 +649,71 @@ const getWatchHistory = asyncHandler(async (req, res) => {
     //aggregation ka code directly jata hai mongoose nahi karta mtlb id
     //1. get user used pipelines and add in fields.
 
-    const user = await User.aggregate(
-        [
-            {
-                $match: {
-                    _id: new mongoose.Types.ObjectId(req.user._id)
-                }
-            },
-            {
-                $lookup: {
-                    from: "videos",
-                    localField: "watchHistory.video",
-                    foreignField: "_id",
-                    as: "watchHistory",
-                    pipeline: [
-                        {
-                            $lookup: {
-                                from: "users",
-                                localField: "owner",
-                                foreignField: "_id",
-                                as: "owner",
-                                pipeline: [
-                                    {
-                                        $project: {
-                                            fullName: 1,
-                                            username: 1,
-                                            avatar: 1,
-                                        }
+    // One document per viewing session. Because we now keep
+    // multiple entries per video, we $unwind so each session
+    // becomes its own row carrying its own watchedAt timestamp.
+    const history = await User.aggregate([
+        {
+            $match: {
+                _id: new mongoose.Types.ObjectId(req.user._id)
+            }
+        },
+        { $unwind: "$watchHistory" },
+        { $sort: { "watchHistory.watchedAt": -1 } },
+        {
+            $lookup: {
+                from: "videos",
+                localField: "watchHistory.video",
+                foreignField: "_id",
+                as: "video",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "owner",
+                            pipeline: [
+                                {
+                                    $project: {
+                                        fullName: 1,
+                                        username: 1,
+                                        avatar: 1,
                                     }
-                                ]
-                            }
-                        },
-                        {
-                            $addFields: {
-                                owner: {
-                                    $arrayElemAt: ["$owner", 0]
                                 }
-                            }
+                            ]
                         }
-                    ]
-                }
-            },
-            {
-                $addFields: {
-                    watchHistory: {
-                        $map: {
-                            input: "$watchHistory",
-                            as: "video",
-                            in: {
-                                _id: "$$video._id",
-                                videoFile: "$$video.videoFile",
-                                thumbnail: "$$video.thumbnail",
-                                title: "$$video.title",
-                                description: "$$video.description",
-                                duration: "$$video.duration",
-                                views: "$$video.views",
-                                isPublished: "$$video.isPublished",
-                                owner: "$$video.owner",
-                                createdAt: "$$video.createdAt",
-                                updatedAt: "$$video.updatedAt",
-                                __v: "$$video.__v",
-                                watchedAt: "$$video.watchedAt"
-                            }
+                    },
+                    {
+                        $addFields: {
+                            owner: { $arrayElemAt: ["$owner", 0] }
                         }
                     }
-                }
+                ]
             }
-        ]
-    )
+        },
+        {
+            $addFields: {
+                video: { $arrayElemAt: ["$video", 0] },
+                watchedAt: "$watchHistory.watchedAt"
+            }
+        },
+        {
+            $project: {
+                _id: 0,
+                video: 1,
+                watchedAt: 1
+            }
+        }
+    ]);
+
+    // Drop sessions whose video was deleted
+    const cleanHistory = history.filter((entry) => entry.video);
 
     //return the response
     return res.status(200)
         .json(
-            new ApiResponse(200, user[0]?.watchHistory || [], "Watch history fetched successfully")
+            new ApiResponse(200, cleanHistory, "Watch history fetched successfully")
         )
 
 

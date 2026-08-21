@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import useVideoStore from "../../store/videoStore";
 import axiosInstance from "../../api/axiosInstance";
 import useAuthStore from "../../store/authStore";
+import usePlaylistStore from "../../store/playlistStore";
 
 const HomePageCard = ({ video }) => {
     const navigate = useNavigate();
@@ -12,6 +13,8 @@ const HomePageCard = ({ video }) => {
     );
 
     const handleOpenVideo = () => {
+        // Opening a video from the feed leaves any playlist context behind
+        usePlaylistStore.getState().clearActivePlaylist();
         openSelectedVideo(video._id);
         axiosInstance.patch(`/videos/${video._id}/view`).catch(() => { });
         navigate("/watch");

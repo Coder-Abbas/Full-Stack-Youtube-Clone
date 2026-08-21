@@ -14,6 +14,7 @@ import {
     Check,
     Clock,
     Clock3,
+    ListVideo,
 } from "lucide-react";
 
 import useVideoStore from "../store/videoStore";
@@ -23,6 +24,11 @@ import Navbar from "../components/navbar/navbar";
 import WatchPageSkeleton from "../components/home/watchPageSkelton";
 import VideoPlayer from "../components/Home/videoPlayer";
 import RecommendedVideoCard from "../components/Home/RecomendedVideoCard";
+import SaveToPlaylist from "../components/playlist/SaveToPlaylist";
+import usePlaylistStore from "../store/playlistStore";
+
+const toHttps = (url) =>
+    url ? url.replace(/^http:\/\//i, "https://") : url;
 
 // How long to wait after the last click before we actually hit the backend.
 const DEBOUNCE_MS = 500;
@@ -58,6 +64,12 @@ const SelectVideo = () => {
         watchLaterVideos,
     } = useVideoStore();
 
+    const {
+        activePlaylist,
+        currentPlaylist,
+        fetchPlaylist,
+    } = usePlaylistStore();
+
     // Get store setters
     const setComments = useVideoStore((state) => state.setComments);
 
@@ -90,6 +102,8 @@ const SelectVideo = () => {
         isSubscribed: false,
         subscribersCount: 0,
     });
+
+    const [isSaveOpen, setIsSaveOpen] = useState(false);
 
     // ==========================================
     // Debounce plumbing
@@ -332,6 +346,14 @@ const SelectVideo = () => {
         }
     }, [selectedVideo?._id, getRecommendedVideos]);
 
+    // When a playlist is being watched, load its video list so the
+    // right sidebar can show the rest of the videos.
+    useEffect(() => {
+        if (activePlaylist?._id) {
+            fetchPlaylist(activePlaylist._id);
+        }
+    }, [activePlaylist?._id, fetchPlaylist]);
+
 
     // ==========================================
     // Next video (keyboard "N" + auto-advance on end)
@@ -529,9 +551,9 @@ const SelectVideo = () => {
             </header>
 
             <main className="pt-20">
-                <div className="max-w-[1500px] mx-auto px-4 py-6">
+                <div className="max-w-[1500px] mx-auto px-3 py-4 sm:px-4 sm:py-6">
 
-                    <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-6">
 
 
                         {/* ================================================= */}
@@ -711,6 +733,18 @@ const SelectVideo = () => {
                                             </>
                                         )}
                                     </button>
+
+                                    {/* Save to playlist */}
+                                    {authUser && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsSaveOpen(true)}
+                                            className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 rounded-full text-sm font-medium cursor-pointer hover:bg-gray-200 transition duration-200"
+                                        >
+                                            <ListVideo size={18} />
+                                            Save
+                                        </button>
+                                    )}
 
                                     {/* Download */}
                                     <button
@@ -941,7 +975,39 @@ const SelectVideo = () => {
                         {/* RIGHT SIDE — RECOMMENDED */}
                         {/* ================================================= */}
 
-                        <aside className="hidden lg:block">
+                        <aside className="mt-8 lg:mt-0">
+
+                            {/* Up next in playlist — same card style as recommendations */}
+                            {activePlaylist && currentPlaylist?.videos?.length > 0 && (
+                                <div className="mb-8">
+                                    <h2 className="font-bold text-lg mb-1">
+                                        Up next in playlist
+                                    </h2>
+                                    <p className="text-sm text-gray-500 mb-4">
+                                        {activePlaylist.name}
+                                    </p>
+                                    <div className="space-y-2">
+                                        {currentPlaylist.videos.map((video) => (
+                                            <div
+                                                key={video._id}
+                                                className={
+                                                    video._id === selectedVideo?._id
+                                                        ? "opacity-60 pointer-events-none"
+                                                        : ""
+                                                }
+                                            >
+                                                <RecommendedVideoCard
+                                                    video={{
+                                                        ...video,
+                                                        thumbnail: toHttps(video.thumbnail),
+                                                        videoFile: toHttps(video.videoFile),
+                                                    }}
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
 
                             <h2 className="font-bold text-lg mb-4">
                                 Recommended
@@ -1069,6 +1135,18 @@ const SelectVideo = () => {
 
                 </div>
 
+            )}
+
+            {/* ================================================= */}
+            {/* SAVE TO PLAYLIST MODAL */}
+            {/* ================================================= */}
+
+            {isSaveOpen && selectedVideo && (
+                <SaveToPlaylist
+                    videoId={selectedVideo._id}
+                    isOpen={isSaveOpen}
+                    onClose={() => setIsSaveOpen(false)}
+                />
             )}
 
         </div>

@@ -56,12 +56,12 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
 
     //6. update the likesCount in the video document
     const likeCount = await Like.countDocuments({ video: videoId });
-    const updatedVideo = await Video.findByIdAndUpdate(videoId, { likesCount: likeCount }, { new: true });
+    await Video.findByIdAndUpdate(videoId, { likesCount: likeCount }, { new: true });
 
-    //7. send response
+    //7. send response (include the authoritative count)
     return res.status(200)
         .json(
-            new ApiResponse(200, { like }, "Video like toggled successfully")
+            new ApiResponse(200, { like, likesCount: likeCount }, "Video like toggled successfully")
         )
 
 
@@ -118,12 +118,12 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
 
     //6. count the likes
     const LikeCount = await Like.countDocuments({ comment: commentId });
-    const updatedComment = await Comment.findByIdAndUpdate(commentId, { commentLikesCount: LikeCount }, { new: true });
+    await Comment.findByIdAndUpdate(commentId, { commentLikesCount: LikeCount }, { new: true });
 
-    //7. send response
+    //7. send response (include the authoritative count)
     return res.status(200)
         .json(
-            new ApiResponse(200, { like }, "comment like toggled successfully")
+            new ApiResponse(200, { like, likesCount: LikeCount }, "comment like toggled successfully")
         )
 
 

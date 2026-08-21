@@ -3,6 +3,58 @@ import { X, Upload, Video, Image, CheckCircle, Loader2, ChevronRight, ChevronLef
 import axiosInstance from "../api/axiosInstance";
 import useVideoStore from "../store/videoStore";
 
+// Generate a representative thumbnail by capturing a frame
+// from the selected video file (used as an automated fallback
+// when the user does not provide a custom thumbnail).
+const generateThumbnailFromFile = (videoFile) =>
+    new Promise((resolve, reject) => {
+        const video = document.createElement("video");
+        const objectUrl = URL.createObjectURL(videoFile);
+
+        video.preload = "metadata";
+        video.muted = true;
+        video.src = objectUrl;
+
+        video.onloadedmetadata = () => {
+            // Seek ~1s in (or 25% of the duration) for a stable frame
+            const seekTo = Math.min(1, (video.duration || 2) / 4);
+            video.currentTime = seekTo;
+        };
+
+        video.onseeked = () => {
+            const canvas = document.createElement("canvas");
+            canvas.width = video.videoWidth || 640;
+            canvas.height = video.videoHeight || 360;
+
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            canvas.toBlob(
+                (blob) => {
+                    URL.revokeObjectURL(objectUrl);
+
+                    if (!blob) {
+                        reject(new Error("Failed to generate thumbnail"));
+                        return;
+                    }
+
+                    resolve(
+                        new File([blob], "thumbnail.jpg", {
+                            type: "image/jpeg",
+                        })
+                    );
+                },
+                "image/jpeg",
+                0.8
+            );
+        };
+
+        video.onerror = () => {
+            URL.revokeObjectURL(objectUrl);
+            reject(new Error("Could not read video for thumbnail"));
+        };
+    });
+
 const UploadVideoModal = ({ onClose }) => {
     const publishVideo = useVideoStore((state) => state.publishVideo);
     const [step, setStep] = useState(1);
@@ -13,6 +65,7 @@ const UploadVideoModal = ({ onClose }) => {
     const [videoPreview, setVideoPreview] = useState("");
     const [thumbnailPreview, setThumbnailPreview] = useState("");
     const [isUploading, setIsUploading] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [uploadedVideo, setUploadedVideo] = useState(null);
     const [isPublishing, setIsPublishing] = useState(false);
@@ -51,10 +104,6 @@ const UploadVideoModal = ({ onClose }) => {
             setError("Please select a video file");
             return;
         }
-        if (!thumbnailFile) {
-            setError("Please select a thumbnail image");
-            return;
-        }
         if (!title.trim()) {
             setError("Please enter a video title");
             return;
@@ -70,12 +119,34 @@ const UploadVideoModal = ({ onClose }) => {
     const handleUpload = async () => {
         setError(null);
         setIsUploading(true);
+        setIsProcessing(false);
         setUploadProgress(0);
 
         try {
+            // Automated fallback: if no custom thumbnail was
+            // provided, extract a representative frame from the video.
+            let thumbnailToUpload = thumbnailFile;
+            if (!thumbnailToUpload && videoFile) {
+                try {
+                    thumbnailToUpload = await generateThumbnailFromFile(videoFile);
+                } catch (genErr) {
+                    setError(
+                        "Could not generate a thumbnail automatically. Please add one manually."
+                    );
+                    setIsUploading(false);
+                    return;
+                }
+            }
+
+            if (!thumbnailToUpload) {
+                setError("A thumbnail is required to upload the video.");
+                setIsUploading(false);
+                return;
+            }
+
             const formData = new FormData();
             formData.append("videoFile", videoFile);
-            formData.append("thumbnail", thumbnailFile);
+            formData.append("thumbnail", thumbnailToUpload);
             formData.append("title", title);
             formData.append("description", description);
 
@@ -91,16 +162,21 @@ const UploadVideoModal = ({ onClose }) => {
                             (progressEvent.loaded * 100) / progressEvent.total
                         );
                         setUploadProgress(percent);
+                        // Upload finished transmitting; server is
+                        // now processing (Cloudinary) — keep the bar full.
+                        if (percent >= 100) setIsProcessing(true);
                     },
                 }
             );
 
             setUploadedVideo(response.data.data);
             setUploadProgress(100);
+            setIsProcessing(false);
             setIsUploading(false);
             setStep(3);
         } catch (err) {
-            
+
+            setIsProcessing(false);
             setError(err.response?.data?.message || "Failed to upload video");
             setIsUploading(false);
         }
@@ -228,7 +304,12 @@ const UploadVideoModal = ({ onClose }) => {
 
                         {/* Thumbnail */}
                         <div>
-                            <label className="block text-sm font-medium mb-2">Thumbnail</label>
+                            <label className="block text-sm font-medium mb-2">
+                                Thumbnail{" "}
+                                <span className="text-gray-400 font-normal">
+                                    (optional — auto-generated from your video)
+                                </span>
+                            </label>
                             {thumbnailPreview ? (
                                 <div className="relative w-64">
                                     <img
@@ -306,14 +387,18 @@ const UploadVideoModal = ({ onClose }) => {
                             {isUploading ? (
                                 <div className="space-y-4">
                                     <Loader2 size={48} className="mx-auto text-blue-600 animate-spin" />
-                                    <p className="text-gray-600">Uploading video...</p>
+                                    <p className="text-gray-600">
+                                        {isProcessing ? "Processing video..." : "Uploading video..."}
+                                    </p>
                                     <div className="w-full max-w-md mx-auto bg-gray-200 rounded-full h-3">
                                         <div
                                             className="bg-blue-600 h-3 rounded-full transition-all duration-300"
                                             style={{ width: `${uploadProgress}%` }}
                                         />
                                     </div>
-                                    <p className="text-sm text-gray-500">{uploadProgress}%</p>
+                                    <p className="text-sm text-gray-500">
+                                        {uploadProgress}%{isProcessing ? " • Processing on server..." : ""}
+                                    </p>
                                 </div>
                             ) : (
                                 <div className="space-y-4">
