@@ -100,7 +100,7 @@ const UploadVideoModal = ({ onClose }) => {
             setIsUploading(false);
             setStep(3);
         } catch (err) {
-            console.error("Upload error:", err);
+            
             setError(err.response?.data?.message || "Failed to upload video");
             setIsUploading(false);
         }
@@ -128,7 +128,7 @@ const UploadVideoModal = ({ onClose }) => {
             onClose();
 
         } catch (err) {
-            console.error("Publish error:", err);
+            
 
             setError(
                 err?.message ||

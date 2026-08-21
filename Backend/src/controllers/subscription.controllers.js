@@ -4,7 +4,6 @@ import { Subscription } from "../models/subscription.models.js"
 import { APIError } from "../utils/APIError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import { asyncHandler } from "../utils/asyncHandler.js"
-import { emitSubscriptionUpdate } from "../socket/socketServer.js"
 
 
 const toggleSubscription = asyncHandler(async (req, res) => {
@@ -38,9 +37,8 @@ const toggleSubscription = asyncHandler(async (req, res) => {
         })
     }
 
-    // Get updated subscriber count and emit real-time update
+    // Get updated subscriber count
     const subscribersCount = await Subscription.countDocuments({ channel: channelId });
-    emitSubscriptionUpdate(channelId, subscribersCount);
 
     //send response 
     return res.status(200)

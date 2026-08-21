@@ -40,11 +40,6 @@ const Profile = () => {
     const [crop, setCrop] = useState({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(1);
     const [isUpdatingAvatar, setIsUpdatingAvatar] = useState(false);
-    const [isAvatarLoading, setIsAvatarLoading] = useState(true);
-
-    const [totalSubscribers, setTotalSubscribers] = useState(0);
-    const [totalVideos, setTotalVideos] = useState(0);
-
 
     const {
         authUser,
@@ -56,7 +51,6 @@ const Profile = () => {
         channelVideos,
         isLoading,
         error,
-        subscribersCount,
         channelUpdatedVersion,
         getMyChannel,
         getMyVideos,
@@ -68,14 +62,15 @@ const Profile = () => {
     };
 
     useEffect(() => {
-        // Only fetch channel data if user is logged in
+        // Only fetch channel data if user is logged in.
+        // Depend on authUser?._id (stable) instead of the authUser
+        // object so our own store update (getMyChannel syncs authUser)
+        // doesn't re-trigger this effect and cause repeated fetches.
         if (!authUser || isCheckingAuth) return;
 
         getMyChannel();
         getMyVideos();
-        setTotalSubscribers(subscribersCount || 0);
-        setTotalVideos(channelVideos?.length || 0);
-    }, [getMyChannel, getMyVideos, subscribersCount, channelVideos, channelUpdatedVersion, authUser, isCheckingAuth]);
+    }, [authUser?._id, isCheckingAuth, channelUpdatedVersion, getMyChannel, getMyVideos]);
 
     // Search videos
     const filteredVideos = useMemo(() => {
@@ -279,7 +274,7 @@ const Profile = () => {
         }, 2000);
 
     } catch (error) {
-        console.error("Avatar update error:", error);
+        
 
         toast.error(
             error?.message || "Failed to update profile picture."

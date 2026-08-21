@@ -15,7 +15,6 @@ import ProfileVideoCard from "../components/videoCards/myProfileCard";
 import ProfileSkeleton from "../components/ProfileSkeleton";
 import axiosInstance from "../api/axiosInstance";
 import useAuthStore from "../store/authStore";
-import { getSocket, subscribeToChannel, unsubscribeFromChannel } from "../api/socket";
 
 const ChannelPage = () => {
     const { username } = useParams();
@@ -78,7 +77,7 @@ const ChannelPage = () => {
 
                 setVideos(convertedVideos);
             } catch (err) {
-                console.error("Fetch channel error:", err);
+                
                 setError(err.response?.data?.message || "Channel not found");
             } finally {
                 setIsLoading(false);
@@ -90,49 +89,6 @@ const ChannelPage = () => {
         }
     }, [username]);
 
-    // ==========================================
-    // Real-time updates via Socket.io
-    // ==========================================
-    useEffect(() => {
-        const socket = getSocket();
-        if (!socket || !channel) return;
-
-        // Join channel room for real-time subscription updates
-        subscribeToChannel(channel._id);
-
-        // Handle real-time subscription updates
-        const handleSubscriptionUpdate = (data) => {
-            if (data?.channelId === channel._id) {
-                setTotalSubscribers(data.subscribersCount);
-            }
-        };
-
-        // Handle video published event
-        const handleVideoPublished = (data) => {
-            if (data?.channelId === channel._id) {
-                // Refresh videos when a video is published
-                fetchChannel();
-            }
-        };
-
-        // Handle video deleted event
-        const handleVideoDeleted = (data) => {
-            if (data?.channelId === channel._id) {
-                fetchChannel();
-            }
-        };
-
-        socket.on("subscription-update", handleSubscriptionUpdate);
-        socket.on("video-published", handleVideoPublished);
-        socket.on("video-deleted", handleVideoDeleted);
-
-        return () => {
-            socket.off("subscription-update", handleSubscriptionUpdate);
-            socket.off("video-published", handleVideoPublished);
-            socket.off("video-deleted", handleVideoDeleted);
-            unsubscribeFromChannel(channel._id);
-        };
-    }, [channel?._id]);
 
     const handleSubscribe = async () => {
         if (!channel?._id || isSubscribing) return;
@@ -144,15 +100,16 @@ const ChannelPage = () => {
         setTotalSubscribers((prev) => (wasSubscribed ? Math.max(0, prev - 1) : prev + 1));
 
         try {
-            await axiosInstance.post(`/subscription/${channel._id}/subscribed`);
-            // Subscribe/unsubscribe channel room based on new state
-            if (!wasSubscribed) {
-                subscribeToChannel(channel._id);
-            } else {
-                unsubscribeFromChannel(channel._id);
+            const res = await axiosInstance.post(
+                `/subscription/${channel._id}/subscribed`
+            );
+            // Sync subscriber count from server (single source of truth)
+            const subscribersCount = res?.data?.data?.subscribersCount;
+            if (typeof subscribersCount === "number") {
+                setTotalSubscribers(subscribersCount);
             }
         } catch (err) {
-            console.error("Subscribe error:", err);
+            
             // rollback on failure
             setIsSubscribed(wasSubscribed);
             setTotalSubscribers((prev) => (wasSubscribed ? prev + 1 : Math.max(0, prev - 1)));
@@ -598,6 +555,7 @@ const ChannelPage = () => {
             )}
         </div>
     );
-};
+}; 
+
 
 export default ChannelPage;

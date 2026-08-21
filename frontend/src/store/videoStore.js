@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import axiosInstance from "../api/axiosInstance";
-import { joinVideoRoom, leaveVideoRoom, subscribeToChannel, unsubscribeFromChannel } from "../api/socket";
 
 // Helper to convert http:// to https:// for Cloudinary URLs
 const toHttps = (url = "") => {
@@ -21,6 +20,7 @@ const useVideoStore = create((set, get) => ({
     currentPage: 1,
 
     hasNextPage: true,
+    isChangedInformation: 0,
 
 
 
@@ -52,7 +52,7 @@ const useVideoStore = create((set, get) => ({
             };
 
         } catch (error) {
-            console.error("Publish video error:", error);
+            
 
             return {
                 success: false,
@@ -154,10 +154,7 @@ const useVideoStore = create((set, get) => ({
 
         } catch (error) {
 
-            console.error(
-                "Error fetching videos:",
-                error
-            );
+            
 
 
             set({
@@ -224,6 +221,8 @@ const useVideoStore = create((set, get) => ({
             set({
                 likedVideos,
                 isLikedVideosLoading: false,
+                // Increment to signal that videos have changed
+
             });
 
         } catch (error) {
@@ -293,13 +292,11 @@ const useVideoStore = create((set, get) => ({
                 subscribedChannels,
                 subscriptionVideos,
                 isSubscriptionDataLoading: false,
+               
             });
 
         } catch (error) {
-            console.error(
-                "Error fetching subscription data:",
-                error
-            );
+            
 
             set({
                 subscribedChannels: [],
@@ -344,13 +341,11 @@ const useVideoStore = create((set, get) => ({
             set({
                 recommendedVideos,
                 isRecommendedLoading: false,
+               
             });
 
         } catch (error) {
-            console.error(
-                "Error fetching recommended videos:",
-                error
-            );
+            
 
             set({
                 recommendedVideos: [],
@@ -387,13 +382,6 @@ const useVideoStore = create((set, get) => ({
             const current = state.subscription;
             const willBeSubscribed = !current.isSubscribed;
 
-            // Subscribe/unsubscribe to the channel room for real-time updates
-            if (willBeSubscribed) {
-                subscribeToChannel(ownerId);
-            } else {
-                unsubscribeFromChannel(ownerId);
-            }
-
             const response = await axiosInstance.post(
                 `/subscription/${ownerId}/subscribed`
             );
@@ -415,10 +403,7 @@ const useVideoStore = create((set, get) => ({
             };
 
         } catch (error) {
-            console.error(
-                "Error toggling subscription:",
-                error
-            );
+            
 
             return { success: false };
         }
@@ -442,14 +427,8 @@ const useVideoStore = create((set, get) => ({
                     (c) => c._id !== channelId
                 ),
             }));
-
-            unsubscribeFromChannel(channelId);
-
         } catch (error) {
-            console.error(
-                "Error toggling channel subscription:",
-                error
-            );
+            
         }
     },
 
@@ -470,10 +449,7 @@ const useVideoStore = create((set, get) => ({
                 isLoading: false,
             });
         } catch (error) {
-            console.error(
-                "Error fetching watch history:",
-                error
-            );
+            
 
             set({
                 watchHistory: [],
@@ -491,11 +467,6 @@ const useVideoStore = create((set, get) => ({
     // ==========================================
 
     getSelectedVideo: async (videoId) => {
-        // Join the video room for real-time updates
-        if (videoId) {
-            joinVideoRoom(videoId);
-        }
-
         try {
 
             set({
@@ -557,10 +528,7 @@ const useVideoStore = create((set, get) => ({
 
         } catch (error) {
 
-            console.error(
-                "Error fetching selected video:",
-                error
-            );
+            
 
 
             set({
@@ -619,10 +587,7 @@ const useVideoStore = create((set, get) => ({
 
         } catch (error) {
 
-            console.error(
-                "Error toggling video like:",
-                error
-            );
+            
 
             return { success: false };
         }
@@ -671,10 +636,7 @@ const useVideoStore = create((set, get) => ({
 
         } catch (error) {
 
-            console.error(
-                "Error adding comment:",
-                error
-            );
+            
 
             return false;
         }
@@ -719,10 +681,7 @@ const useVideoStore = create((set, get) => ({
 
         } catch (error) {
 
-            console.error(
-                "Error updating comment:",
-                error
-            );
+            
 
             return false;
         }
@@ -754,10 +713,7 @@ const useVideoStore = create((set, get) => ({
 
         } catch (error) {
 
-            console.error(
-                "Error deleting comment:",
-                error
-            );
+            
 
             return false;
         }
@@ -814,10 +770,7 @@ const useVideoStore = create((set, get) => ({
 
         } catch (error) {
 
-            console.error(
-                "Error toggling comment like:",
-                error
-            );
+            
 
             return { success: false };
         }
@@ -883,7 +836,7 @@ const useVideoStore = create((set, get) => ({
             };
 
         } catch (error) {
-            console.error("Error toggling watch later:", error);
+            
             return {
                 success: false,
                 message: error?.response?.data?.message || "Failed to update watch later",
@@ -929,7 +882,7 @@ const useVideoStore = create((set, get) => ({
             return { success: true, videos };
 
         } catch (error) {
-            console.error("Error fetching watch later videos:", error);
+            
             set({
                 watchLaterVideos: [],
                 isWatchLaterLoading: false,
@@ -946,11 +899,6 @@ const useVideoStore = create((set, get) => ({
     // ==========================================
 
     clearSelectedVideo: () => {
-        // Leave the video room
-        if (get().selectedVideoId) {
-            leaveVideoRoom(get().selectedVideoId);
-        }
-
         set({
 
             selectedVideo: null,

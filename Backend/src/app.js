@@ -23,6 +23,18 @@ app.use(express.urlencoded({
     limit: "10mb",
 }));
 
+// Basic security headers (no external dependency required)
+app.use((req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("Referrer-Policy", "no-referrer");
+    res.setHeader(
+        "Permissions-Policy",
+        "geolocation=(), microphone=(), camera=()"
+    );
+    next();
+});
+
 app.use(express.static("public"));
 
 
@@ -33,6 +45,7 @@ import videoRoutes from "./routes/video.routes.js";
 import subscriptionRoutes from "./routes/subscription.routes.js"
 import likeRoutes from "./routes/like.routes.js";
 import commentRoutes from "./routes/comment.routes.js";
+import searchRouter from "./routes/search.routes.js";
 
 
 
@@ -43,6 +56,10 @@ app.use("/api/v1/videos", videoRoutes);
 app.use("/api/v1/subscription", subscriptionRoutes)
 app.use("/api/v1/likes", likeRoutes);
 app.use("/api/v1/comments", commentRoutes);
+app.use(
+    "/api/v1/search",
+    searchRouter
+);
 
 
 export { app };

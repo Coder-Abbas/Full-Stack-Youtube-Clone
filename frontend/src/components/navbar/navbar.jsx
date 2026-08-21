@@ -1,39 +1,114 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Menu, Search, User, LogOut, UserCircle, Upload } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import {
+    Menu,
+    Search,
+    User,
+    LogOut,
+    UserCircle,
+    Upload,
+} from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
 import useAuthStore from "../../store/authStore";
+import useSearchStore from "../../store/searchStore";
 import UploadVideoModal from "../UploadVideoModal";
-import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 
-const Navbar = ({ toggleSidebar = () => { } }) => {
+const Navbar = ({ toggleSidebar = () => {} }) => {
     const navigate = useNavigate();
     const menuRef = useRef(null);
+
     const { authUser, getMe, logout } = useAuthStore();
+
+    // Search Zustand
+    const { search } = useSearchStore();
+
     const [menuOpen, setMenuOpen] = useState(false);
     const [isUploadOpen, setIsUploadOpen] = useState(false);
 
+    // Desktop search
+    const [searchText, setSearchText] = useState("");
+
+    // Mobile search
+    const [mobileSearchText, setMobileSearchText] = useState("");
+
     useEffect(() => {
-        getMe();
-    }, [getMe]);
+        // Only fetch the current user once when not already authenticated.
+        // Avoids re-fetching on every route change (Navbar remounts per page).
+        if (!authUser) {
+            getMe();
+        }
+    }, [authUser, getMe]);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
-            if (menuRef.current && !menuRef.current.contains(event.target)) {
+            if (
+                menuRef.current &&
+                !menuRef.current.contains(event.target)
+            ) {
                 setMenuOpen(false);
             }
         };
 
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
+        document.addEventListener(
+            "mousedown",
+            handleClickOutside
+        );
+
+        return () =>
+            document.removeEventListener(
+                "mousedown",
+                handleClickOutside
+            );
     }, []);
 
     const handleLogout = async () => {
         await logout();
-        setMenuOpen(false);
-        navigate("/");
-        toast.success("Logged out successfully!");
 
+        setMenuOpen(false);
+
+        navigate("/");
+
+        toast.success("Logged out successfully!");
+    };
+
+    // ==========================================
+    // DESKTOP SEARCH
+    // ==========================================
+
+    const handleSearch = async (e) => {
+        e.preventDefault();
+
+        const query = searchText.trim();
+
+        if (!query) return;
+
+        // Zustand handles API request
+        await search(query);
+
+        // Open search page
+        navigate(
+            `/search?q=${encodeURIComponent(query)}`
+        );
+    };
+
+    // ==========================================
+    // MOBILE SEARCH
+    // ==========================================
+
+    const handleMobileSearch = async (e) => {
+        e.preventDefault();
+
+        const query = mobileSearchText.trim();
+
+        if (!query) return;
+
+        // Zustand handles API request
+        await search(query);
+
+        // Open search page
+        navigate(
+            `/search?q=${encodeURIComponent(query)}`
+        );
     };
 
     return (
@@ -46,7 +121,10 @@ const Navbar = ({ toggleSidebar = () => { } }) => {
                         className="rounded-full p-2 transition cursor-pointer hover:bg-gray-100"
                         aria-label="Toggle sidebar"
                     >
-                        <Menu size={24} className="text-gray-700" />
+                        <Menu
+                            size={24}
+                            className="text-gray-700"
+                        />
                     </button>
 
                     <img
@@ -57,78 +135,125 @@ const Navbar = ({ toggleSidebar = () => { } }) => {
                     />
                 </div>
 
-                <div className="hidden flex-1 max-w-2xl mx-4 md:flex">
+                {/* ==============================
+                    DESKTOP SEARCH
+                ============================== */}
+
+                <form
+                    onSubmit={handleSearch}
+                    className="hidden flex-1 max-w-2xl mx-4 md:flex"
+                >
                     <div className="flex w-full">
                         <input
                             type="text"
                             placeholder="Search..."
+                            value={searchText}
+                            onChange={(e) =>
+                                setSearchText(e.target.value)
+                            }
                             className="w-full rounded-l-full border border-gray-300 px-4 py-2 outline-none focus:border-blue-500"
                         />
+
                         <button
-                            type="button"
+                            type="submit"
                             className="cursor-pointer rounded-r-full border border-l-0 border-gray-300 bg-gray-100 px-5 py-2 transition hover:bg-gray-200"
                             aria-label="Search"
                         >
-                            <Search size={20} className="text-gray-700" />
+                            <Search
+                                size={20}
+                                className="text-gray-700"
+                            />
                         </button>
                     </div>
-                </div>
+                </form>
 
                 <div className="flex items-center gap-3">
                     {authUser ? (
                         <>
                             {/* Upload Video Button */}
+
                             <button
                                 type="button"
-                                onClick={() => setIsUploadOpen(true)}
+                                onClick={() =>
+                                    setIsUploadOpen(true)
+                                }
                                 className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 transition cursor-pointer"
                             >
                                 <Upload size={18} />
-                                <span className="hidden sm:inline">Upload</span>
+
+                                <span className="hidden sm:inline">
+                                    Upload
+                                </span>
                             </button>
 
-                            <div className="relative" ref={menuRef}>
-                            <button
-                                type="button"
-                                onClick={() => setMenuOpen((prev) => !prev)}
-                                className="flex h-10 w-10 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-gray-200 bg-gray-100 transition hover:bg-gray-200"
-                                aria-label="Open user menu"
+                            <div
+                                className="relative"
+                                ref={menuRef}
                             >
-                                {authUser.avatar ? (
-                                    <img
-                                        src={authUser.avatar}
-                                        alt={authUser.fullName || authUser.username || "User"}
-                                        className="h-full w-full object-cover"
-                                    />
-                                ) : (
-                                    <User size={18} className="text-gray-700" />
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        setMenuOpen(
+                                            (prev) => !prev
+                                        )
+                                    }
+                                    className="flex h-10 w-10 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-gray-200 bg-gray-100 transition hover:bg-gray-200"
+                                    aria-label="Open user menu"
+                                >
+                                    {authUser.avatar ? (
+                                        <img
+                                            src={
+                                                authUser.avatar
+                                            }
+                                            alt={
+                                                authUser.fullName ||
+                                                authUser.username ||
+                                                "User"
+                                            }
+                                            className="h-full w-full object-cover"
+                                        />
+                                    ) : (
+                                        <User
+                                            size={18}
+                                            className="text-gray-700"
+                                        />
+                                    )}
+                                </button>
+
+                                {menuOpen && (
+                                    <div className="absolute right-0 top-12 z-50 w-44 rounded-xl border border-gray-200 bg-white py-2 shadow-lg">
+                                        <Link
+                                            type="button"
+                                            onClick={() => {
+                                                setMenuOpen(
+                                                    false
+                                                );
+                                            }}
+                                            to="/profile"
+                                            className="flex w-full cursor-pointer items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 transition hover:bg-gray-100"
+                                        >
+                                            <UserCircle
+                                                size={16}
+                                            />
+
+                                            Profile
+                                        </Link>
+
+                                        <button
+                                            type="button"
+                                            onClick={
+                                                handleLogout
+                                            }
+                                            className="flex cursor-pointer w-full items-center gap-2 px-4 py-2 text-left text-sm text-red-600 transition hover:bg-red-50"
+                                        >
+                                            <LogOut
+                                                size={16}
+                                            />
+
+                                            Logout
+                                        </button>
+                                    </div>
                                 )}
-                            </button>
-
-                            {menuOpen && (
-                                <div className="absolute right-0 top-12 z-50 w-44 rounded-xl border border-gray-200 bg-white py-2 shadow-lg">
-                                    <Link
-                                        type="button"
-                                        onClick={() => {
-                                            setMenuOpen(false);
-                                        }}
-                                        to="/profile"
-                                        className="flex w-full cursor-pointer items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 transition hover:bg-gray-100"
-                                    >
-                                        <UserCircle size={16} />
-                                        Profile
-                                    </Link>
-
-                                    <button
-                                        type="button"
-                                        onClick={handleLogout}
-                                        className="flex cursor-pointer w-full items-center gap-2 px-4 py-2 text-left text-sm text-red-600 transition hover:bg-red-50"
-                                    >
-                                        <LogOut size={16} />
-                                        Logout
-                                    </button>
-                                </div>
-                            )}
                             </div>
                         </>
                     ) : (
@@ -143,25 +268,47 @@ const Navbar = ({ toggleSidebar = () => { } }) => {
                 </div>
             </div>
 
-            <div className="mt-3 flex md:hidden">
+            {/* ==============================
+                MOBILE SEARCH
+            ============================== */}
+
+            <form
+                onSubmit={handleMobileSearch}
+                className="mt-3 flex md:hidden"
+            >
                 <div className="flex w-full">
                     <input
                         type="text"
                         placeholder="Search..."
+                        value={mobileSearchText}
+                        onChange={(e) =>
+                            setMobileSearchText(
+                                e.target.value
+                            )
+                        }
                         className="w-full rounded-l-full border border-gray-300 px-4 py-2 outline-none focus:border-blue-500"
                     />
+
                     <button
-                        type="button"
+                        type="submit"
                         className="cursor-pointer rounded-r-full border border-l-0 border-gray-300 bg-gray-100 px-5 py-2 transition hover:bg-gray-200"
                     >
-                        <Search size={20} className="text-gray-700" />
+                        <Search
+                            size={20}
+                            className="text-gray-700"
+                        />
                     </button>
                 </div>
-            </div>
+            </form>
 
             {/* Upload Video Modal */}
+
             {isUploadOpen && (
-                <UploadVideoModal onClose={() => setIsUploadOpen(false)} />
+                <UploadVideoModal
+                    onClose={() =>
+                        setIsUploadOpen(false)
+                    }
+                />
             )}
         </nav>
     );

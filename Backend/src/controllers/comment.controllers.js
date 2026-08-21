@@ -5,7 +5,6 @@ import { ApiResponse } from "../utils/ApiResponse.js"
 import { asyncHandler } from "../utils/asyncHandler.js"
 import { Like } from "../models/like.models.js"
 import { Comment } from "../models/comment.models.js"
-import { emitNewComment, emitUpdateComment, emitDeleteComment } from "../socket/socketServer.js"
 
 
 
@@ -53,9 +52,6 @@ const addComment = asyncHandler(async (req, res) => {
     );
     await comment.populate("owner", "fullName avatar");
 
-    // Emit real-time comment event to all users watching this video
-    emitNewComment(videoId, comment);
-
     //return response
     return res.status(201)
         .json(
@@ -99,10 +95,7 @@ const updateComment = asyncHandler(async (req, res) => {
         throw new APIError(404, "Comment not found");
     }
 
-    //6. Emit comment update event
-    emitUpdateComment(comment.video?.toString(), comment);
-
-    //7. return response
+    //6. return response
     return res.status(200)
         .json(
             new ApiResponse(200, comment, "Comment updated successfully")
@@ -139,33 +132,30 @@ const deleteComment = asyncHandler(async (req, res) => {
 
     //1. get the comment id
     const { commentId } = req.params;
-    if(!isValidObjectId(commentId)) {
+    if (!isValidObjectId(commentId)) {
         throw new APIError(400, "Invalid comment id");
     }
 
     //2. get the authenticated user id
     const userId = req.user?._id;
-    if(!isValidObjectId(userId)) {
+    if (!isValidObjectId(userId)) {
         throw new APIError(400, "Invalid user id");
     }
 
-   
+
     //3. check if the comment exists
     const comment = await Comment.findById(commentId);
-    if(!comment) {
+    if (!comment) {
         throw new APIError(404, "Comment not found");
     }
 
-    if(userId.toString() !== comment.owner.toString()) {
+    if (userId.toString() !== comment.owner.toString()) {
         throw new APIError(403, "You are not authorized to delete this comment");
     }
 
     //delete the comment. 
     await Comment.findByIdAndDelete(commentId);
     await Like.deleteMany({ comment: commentId });
-
-    // Emit comment deletion event to all users watching this video
-    emitDeleteComment(comment.video?.toString(), commentId);
 
     //return response
     return res.status(200)

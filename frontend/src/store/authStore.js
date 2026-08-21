@@ -61,13 +61,6 @@ const useAuthStore = create((set, get) => ({
             const user = response?.data?.data?.user || response?.data?.user || null;
             const accessToken = response?.data?.data?.accessToken || response?.data?.accessToken || null;
 
-            // Store accessToken in localStorage for socket.io authentication
-            if (accessToken) {
-                try {
-                    localStorage.setItem("accessToken", accessToken);
-                } catch (e) {}
-            }
-
             set({
                 authUser: user,
                 accessToken,
@@ -124,7 +117,7 @@ const useAuthStore = create((set, get) => ({
         try {
             await axiosInstance.post("/users/logout");
         } catch (error) {
-            console.error("Logout error:", error);
+            
         } finally {
             try {
                 localStorage.removeItem("accessToken");
@@ -169,7 +162,7 @@ const useAuthStore = create((set, get) => ({
             error?.message ||
             "Failed to update avatar";
 
-        console.error("Update avatar error:", error);
+        
 
         set({
             error: message,

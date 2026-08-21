@@ -181,10 +181,7 @@ const useChannelStore = create((set, get) => ({
 
             } catch (channelError) {
 
-                console.error(
-                    "Fetch channel profile error:",
-                    channelError
-                );
+                
 
                 // Keep current-user data
                 channel = channelBase;
@@ -210,10 +207,7 @@ const useChannelStore = create((set, get) => ({
 
         } catch (error) {
 
-            console.error(
-                "Get channel error:",
-                error
-            );
+            
 
             const message =
                 error?.response?.data?.message ||
@@ -294,10 +288,7 @@ const useChannelStore = create((set, get) => ({
 
         } catch (error) {
 
-            console.error(
-                "Get my videos error:",
-                error
-            );
+            
 
             set({
                 channelVideos: [],
@@ -385,10 +376,7 @@ const useChannelStore = create((set, get) => ({
 
         } catch (error) {
 
-            console.error(
-                "Update channel error:",
-                error
-            );
+            
 
 
             const message =
@@ -555,10 +543,7 @@ const useChannelStore = create((set, get) => ({
 
         } catch (error) {
 
-            console.error(
-                "Update avatar error:",
-                error
-            );
+            
 
 
             const message =
@@ -634,10 +619,7 @@ const useChannelStore = create((set, get) => ({
 
         } catch (error) {
 
-            console.error(
-                "Change password error:",
-                error
-            );
+            
 
 
             const message =
@@ -710,10 +692,7 @@ const useChannelStore = create((set, get) => ({
 
         } catch (error) {
 
-            console.error(
-                "Delete video error:",
-                error
-            );
+            
 
 
             const message =

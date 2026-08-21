@@ -15,11 +15,11 @@ const deletepicold = async (imageUrl) => {
         // Extract the public ID from the image URL
         const publicId = imageUrl.split('/').pop().split('.')[0];
 
-        console.log("Public ID:", publicId);
+        
         // Delete the image from Cloudinary
         await cloudinary.uploader.destroy(publicId);
     } catch (error) {
-        console.error("Error deleting old image from Cloudinary:", error);
+        
     }
 }
 
@@ -175,16 +175,22 @@ const loginUser = asyncHandler(async (req, res) => {
     //1. get the data from the request body
     const { email, username, password } = req.body;
 
+    // Coerce to strings to prevent NoSQL operator injection
+    // (e.g. sending an object like { "$gt": "" } as a field).
+    const safeEmail = typeof email === "string" ? email.trim() : "";
+    const safeUsername = typeof username === "string" ? username.trim() : "";
+    const safePassword = typeof password === "string" ? password : "";
+
     //2. validate the data
-    if (!(email || username)) {
-        throw new APIError(400, "Email or username is required")
+    if (!(safeEmail || safeUsername) || !safePassword) {
+        throw new APIError(400, "Email or username and password are required")
     }
 
     //3. check if the user exists by using email or username
     const user = await User.findOne({
         $or: [
-            { email: email },
-            { username: username }
+            { email: safeEmail },
+            { username: safeUsername }
         ]
     })
 
@@ -196,7 +202,7 @@ const loginUser = asyncHandler(async (req, res) => {
 
 
     //5. check if the password is correct
-    const isPasswordValid = await user.isPasswordCorrect(password)
+    const isPasswordValid = await user.isPasswordCorrect(safePassword)
 
 
     //6. if password is not correct then throw error
@@ -212,9 +218,11 @@ const loginUser = asyncHandler(async (req, res) => {
     //8. add the details to variable to send in the response
     const loggedInuser = await User.findById(user._id).select("-password -refreshToken")
 
+    // secure cookies only over HTTPS in production
     const options = {
         httpOnly: true,
-        secure: true
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
     }
 
     //return the response
@@ -264,15 +272,16 @@ const logoutUser = asyncHandler(async (req, res) => {
     //add options for cookies
     const options = {
         httpOnly: true,
-        secure: true
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
     }
 
     //return response
 
     return res
         .status(200)
-        .clearCookie("accessToken", { path: "/" })
-        .clearCookie("refreshToken", { path: "/" })
+        .clearCookie("accessToken", { ...options, path: "/" })
+        .clearCookie("refreshToken", { ...options, path: "/" })
         .json(
             new ApiResponse(
                 200,
@@ -488,10 +497,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
         try {
             await deletepicold(oldAvatarUrl);
         } catch (deleteError) {
-            console.error(
-                "Failed to delete old avatar:",
-                deleteError
-            );
+            
 
             // Don't fail the whole request because
             // the new avatar was successfully uploaded.
