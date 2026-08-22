@@ -16,6 +16,11 @@ import {
     ArrowUpRight,
     Pencil,
     Trash2,
+    X,
+    Upload,
+    Image as ImageIcon,
+    FileVideo,
+    CheckCircle2,
 } from "lucide-react";
 
 import Navbar from "../../components/navbar/navbar";
@@ -55,28 +60,16 @@ const shortDate = (value) => {
     return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 };
 
-// "3 hours ago" / "5 days ago" style relative time
-const timeAgo = (value) => {
-    if (!value) return "";
-    const d = new Date(value);
-    if (isNaN(d.getTime())) return "";
-
-    const seconds = Math.floor((Date.now() - d.getTime()) / 1000);
-    if (seconds < 60) return "just now";
-
-    const units = [
-        { label: "y", secs: 31536000 },
-        { label: "mo", secs: 2592000 },
-        { label: "d", secs: 86400 },
-        { label: "h", secs: 3600 },
-        { label: "m", secs: 60 },
-    ];
-
-    for (const u of units) {
-        const val = Math.floor(seconds / u.secs);
-        if (val >= 1) return `${val}${u.label} ago`;
+const formatFileSize = (bytes) => {
+    if (!bytes) return "";
+    const units = ["B", "KB", "MB", "GB"];
+    let size = bytes;
+    let i = 0;
+    while (size >= 1024 && i < units.length - 1) {
+        size /= 1024;
+        i++;
     }
-    return "just now";
+    return `${size.toFixed(1)} ${units[i]}`;
 };
 
 // Percentage change helper — returns null when there's nothing to compare against
@@ -115,23 +108,145 @@ const ChangeBadge = ({ change, size = "xs" }) => {
 };
 
 // ----------------------------------------------------------
+// Skeleton primitives
+// ----------------------------------------------------------
+
+const Shimmer = ({ className = "" }) => (
+    <div className={`animate-pulse rounded-md bg-gray-200/80 ${className}`} />
+);
+
+const StatCardSkeleton = () => (
+    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="flex items-center gap-4">
+            <Shimmer className="h-12 w-12 shrink-0 rounded-xl" />
+            <div className="min-w-0 flex-1 space-y-2">
+                <Shimmer className="h-3.5 w-20" />
+                <Shimmer className="h-6 w-16" />
+            </div>
+        </div>
+        <div className="mt-3">
+            <Shimmer className="h-4 w-14 rounded-full" />
+        </div>
+    </div>
+);
+
+const ChartSkeleton = () => (
+    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm lg:col-span-2">
+        <div className="mb-5 space-y-2">
+            <Shimmer className="h-3 w-12" />
+            <Shimmer className="h-8 w-28" />
+            <Shimmer className="h-3 w-40" />
+        </div>
+        <Shimmer className="h-[260px] w-full rounded-xl" />
+    </div>
+);
+
+const TopVideosSkeleton = () => (
+    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <Shimmer className="mb-4 h-5 w-24" />
+        <div className="divide-y divide-gray-100">
+            {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 py-2.5">
+                    <Shimmer className="h-4 w-4" />
+                    <Shimmer className="h-11 w-[70px] shrink-0 rounded-lg" />
+                    <div className="min-w-0 flex-1 space-y-1.5">
+                        <Shimmer className="h-3.5 w-full max-w-[160px]" />
+                        <Shimmer className="h-3 w-16" />
+                    </div>
+                </div>
+            ))}
+        </div>
+    </div>
+);
+
+const TableSkeleton = () => (
+    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <Shimmer className="mb-4 h-5 w-32" />
+        <div className="space-y-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3">
+                    <Shimmer className="h-12 w-20 shrink-0 rounded-lg" />
+                    <div className="min-w-0 flex-1 space-y-1.5">
+                        <Shimmer className="h-3.5 w-full max-w-[220px]" />
+                        <Shimmer className="h-3 w-16" />
+                    </div>
+                    <Shimmer className="h-3.5 w-14 shrink-0" />
+                    <Shimmer className="h-3.5 w-10 shrink-0" />
+                    <Shimmer className="h-3.5 w-16 shrink-0" />
+                    <div className="flex shrink-0 gap-2">
+                        <Shimmer className="h-8 w-8 rounded-lg" />
+                        <Shimmer className="h-8 w-8 rounded-lg" />
+                    </div>
+                </div>
+            ))}
+        </div>
+    </div>
+);
+
+const SubscribersSkeleton = () => (
+    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <Shimmer className="mb-4 h-5 w-36" />
+        <div className="flex gap-3 overflow-hidden">
+            {Array.from({ length: 6 }).map((_, i) => (
+                <div
+                    key={i}
+                    className="flex shrink-0 items-center gap-3 rounded-xl border border-gray-100 bg-gray-50/60 px-3 py-2.5"
+                >
+                    <Shimmer className="h-10 w-10 shrink-0 rounded-full" />
+                    <div className="space-y-1.5">
+                        <Shimmer className="h-3.5 w-24" />
+                        <Shimmer className="h-3 w-16" />
+                    </div>
+                </div>
+            ))}
+        </div>
+    </div>
+);
+
+const DashboardSkeleton = () => (
+    <div className="space-y-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+                <StatCardSkeleton key={i} />
+            ))}
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <ChartSkeleton />
+            <TopVideosSkeleton />
+        </div>
+
+        <TableSkeleton />
+        <SubscribersSkeleton />
+    </div>
+);
+
+// ----------------------------------------------------------
 // Stat card
 // ----------------------------------------------------------
 
 const StatCard = ({ icon: Icon, label, value, color, change }) => (
-    <div className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md">
-        <div
-            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${color}`}
-        >
-            <Icon size={22} />
+    <div className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
+        <div className="flex items-center gap-4">
+            <div
+                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${color} shadow-sm`}
+            >
+                <Icon size={22} />
+            </div>
+
+            <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-gray-500">{label}</p>
+                <p className="mt-1 text-2xl font-bold text-gray-900 tracking-tight">
+                    {formatCount(value)}
+                </p>
+            </div>
         </div>
 
-        <div className="min-w-0 flex-1">
-            <div className="flex items-center justify-between gap-2">
-                <p className="truncate text-sm text-gray-500">{label}</p>
-                <ChangeBadge change={change} />
-            </div>
-            <p className="text-2xl font-bold text-gray-900">{formatCount(value)}</p>
+        <div className="mt-3 flex items-center justify-between">
+            <ChangeBadge change={change} />
+            <span className="text-xs text-gray-400 opacity-0 transition-opacity group-hover:opacity-100">
+                Updated just now
+            </span>
         </div>
     </div>
 );
@@ -159,40 +274,38 @@ const EmptyState = ({ message }) => (
 // Top Videos — compact ranked list (sits beside the graph)
 // ----------------------------------------------------------
 
-const TopVideoRow = ({ video, rank, onVideoClick }) => {
-    return (
-        <button
-            type="button"
-            onClick={() => onVideoClick?.(video)}
-            className="flex w-full items-center gap-3 py-2.5 text-left transition hover:bg-gray-50"
-        >
-            <span className="w-4 shrink-0 text-center text-xs font-semibold text-gray-400">
-                {rank}
-            </span>
+const TopVideoRow = ({ video, rank, onVideoClick }) => (
+    <button
+        type="button"
+        onClick={() => onVideoClick?.(video)}
+        className="flex w-full items-center gap-3 py-2.5 text-left transition hover:bg-gray-50"
+    >
+        <span className="w-4 shrink-0 text-center text-xs font-semibold text-gray-400">
+            {rank}
+        </span>
 
-            <img
-                src={toHttps(video.thumbnail)}
-                alt={video.title}
-                className="h-11 w-[70px] shrink-0 rounded-lg bg-gray-100 object-cover"
-            />
+        <img
+            src={toHttps(video.thumbnail)}
+            alt={video.title}
+            className="h-11 w-[70px] shrink-0 rounded-lg bg-gray-100 object-cover"
+        />
 
-            <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-gray-900">
-                    {video.title}
-                </p>
-                <p className="mt-0.5 text-xs text-gray-500">
-                    {formatCount(video.views)} views
-                </p>
-            </div>
-        </button>
-    );
-};
+        <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-gray-900">
+                {video.title}
+            </p>
+            <p className="mt-0.5 text-xs text-gray-500">
+                {formatCount(video.views)} views
+            </p>
+        </div>
+    </button>
+);
 
 // ----------------------------------------------------------
 // Recent Videos — table with thumbnail, likes, comments, actions
 // ----------------------------------------------------------
 
-const RecentVideosTable = ({ videos, onUpdate, onDelete }) => {
+const RecentVideosTable = ({ videos, onUpdate, onDelete, onVideoClick }) => {
     if (!videos.length) {
         return <EmptyState message="No videos uploaded yet." />;
     }
@@ -222,16 +335,26 @@ const RecentVideosTable = ({ videos, onUpdate, onDelete }) => {
                     {videos.map((v) => (
                         <tr key={v._id} className="group">
                             <td className="py-2.5 pr-3">
-                                <div className="flex min-w-0 items-center gap-3">
-                                    <img
-                                        src={toHttps(v.thumbnail)}
-                                        alt={v.title}
-                                        className="h-12 w-20 shrink-0 rounded-lg bg-gray-100 object-cover"
-                                    />
+                                <div className="flex min-w-0 items-center gap-3 rounded-lg transition">
+                                    <button
+                                        type="button"
+                                        onClick={() => onVideoClick?.(v)}
+                                        className="shrink-0 cursor-pointer overflow-hidden rounded-lg"
+                                    >
+                                        <img
+                                            src={toHttps(v.thumbnail)}
+                                            alt={v.title}
+                                            className="h-12 w-20 rounded-lg bg-gray-100 object-cover"
+                                        />
+                                    </button>
                                     <div className="min-w-0">
-                                        <p className="truncate text-sm font-medium text-gray-900">
+                                        <button
+                                            type="button"
+                                            onClick={() => onVideoClick?.(v)}
+                                            className="cursor-pointer truncate text-left text-sm font-medium text-gray-900 hover:text-blue-600"
+                                        >
                                             {v.title}
-                                        </p>
+                                        </button>
                                         <p className="mt-0.5 text-xs text-gray-500">
                                             {formatCount(v.views)} views
                                         </p>
@@ -257,7 +380,7 @@ const RecentVideosTable = ({ videos, onUpdate, onDelete }) => {
                                         type="button"
                                         onClick={() => onUpdate(v)}
                                         title="Edit video"
-                                        className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-blue-50 hover:text-blue-600"
+                                        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-400 transition hover:bg-blue-50 hover:text-blue-600"
                                     >
                                         <Pencil size={15} />
                                     </button>
@@ -265,7 +388,7 @@ const RecentVideosTable = ({ videos, onUpdate, onDelete }) => {
                                         type="button"
                                         onClick={() => onDelete(v)}
                                         title="Delete video"
-                                        className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-red-50 hover:text-red-600"
+                                        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-400 transition hover:bg-red-50 hover:text-red-600"
                                     >
                                         <Trash2 size={15} />
                                     </button>
@@ -280,7 +403,7 @@ const RecentVideosTable = ({ videos, onUpdate, onDelete }) => {
 };
 
 // ----------------------------------------------------------
-// Recent Subscribers — horizontal scroll row with "time ago"
+// Recent Subscribers — horizontal scroll row
 // ----------------------------------------------------------
 
 const SubscriberCard = ({ sub }) => {
@@ -298,9 +421,6 @@ const SubscriberCard = ({ sub }) => {
             <div className="min-w-0">
                 <p className="max-w-[140px] truncate text-sm font-medium text-gray-900">
                     {subscriber.fullName || subscriber.username}
-                </p>
-                <p className="text-xs text-gray-400">
-                    Subscribed {timeAgo(sub.createdAt)}
                 </p>
             </div>
         </Link>
@@ -334,18 +454,15 @@ const ViewsChart = ({ analytics }) => {
             return { x, y, ...a };
         });
 
-        const tViews = analytics.reduce((s, a) => s + (a.views || 0), 0);
-        const tLikes = analytics.reduce((s, a) => s + (a.likes || 0), 0);
-        const tComments = analytics.reduce((s, a) => s + (a.comments || 0), 0);
-
+        const lastPoint = analytics[analytics.length - 1] || {};
         const first = analytics[0]?.views || 0;
-        const last = analytics[analytics.length - 1]?.views || 0;
+        const last = lastPoint.views || 0;
 
         return {
             points: pts,
-            totalViews: tViews,
-            totalLikes: tLikes,
-            totalComments: tComments,
+            totalViews: lastPoint.views || 0,
+            totalLikes: lastPoint.likes || 0,
+            totalComments: lastPoint.comments || 0,
             changePct: getChange(last, first),
         };
     }, [analytics]);
@@ -364,7 +481,6 @@ const ViewsChart = ({ analytics }) => {
 
     return (
         <div>
-            {/* Big current-total header, YouTube-Studio style */}
             <div className="mb-5">
                 <p className="text-xs font-medium text-gray-500">Views</p>
                 <div className="mt-1 flex items-baseline gap-3">
@@ -484,6 +600,72 @@ const ViewsChart = ({ analytics }) => {
 };
 
 // ----------------------------------------------------------
+// Styled file picker (used in the edit modal)
+// ----------------------------------------------------------
+
+const FilePicker = ({ label, icon: Icon, accept, file, onChange, hint }) => {
+    const inputId = `file-picker-${label.replace(/\s+/g, "-").toLowerCase()}`;
+
+    return (
+        <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                {label}
+            </label>
+
+            <label
+                htmlFor={inputId}
+                className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed px-4 py-3 text-sm transition ${
+                    file
+                        ? "border-green-300 bg-green-50/60"
+                        : "border-gray-200 bg-gray-50 hover:border-blue-300 hover:bg-blue-50/40"
+                }`}
+            >
+                <div
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                        file ? "bg-green-100 text-green-600" : "bg-white text-gray-400"
+                    }`}
+                >
+                    {file ? <CheckCircle2 size={18} /> : <Icon size={18} />}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                    {file ? (
+                        <>
+                            <p className="truncate font-medium text-gray-800">
+                                {file.name}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                                {formatFileSize(file.size)} · click to replace
+                            </p>
+                        </>
+                    ) : (
+                        <>
+                            <p className="font-medium text-gray-600">
+                                Click to upload{" "}
+                                <span className="text-gray-400 font-normal">
+                                    or drag and drop
+                                </span>
+                            </p>
+                            {hint && <p className="text-xs text-gray-400">{hint}</p>}
+                        </>
+                    )}
+                </div>
+
+                {!file && <Upload size={16} className="shrink-0 text-gray-400" />}
+
+                <input
+                    id={inputId}
+                    type="file"
+                    accept={accept}
+                    onChange={(e) => onChange(e.target.files?.[0] || null)}
+                    className="hidden"
+                />
+            </label>
+        </div>
+    );
+};
+
+// ----------------------------------------------------------
 // Page
 // ----------------------------------------------------------
 
@@ -495,6 +677,7 @@ const Dashboard = () => {
     const { authUser, isCheckingAuth } = useAuthStore();
     const navigate = useNavigate();
     const openSelectedVideo = useVideoStore((state) => state.openSelectedVideo);
+    const { videoPublishedVersion } = useVideoStore();
 
     const [overview, setOverview] = useState(null);
     const [topVideos, setTopVideos] = useState([]);
@@ -505,6 +688,7 @@ const Dashboard = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    // Edit modal state
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingVideo, setEditingVideo] = useState(null);
     const [editTitle, setEditTitle] = useState("");
@@ -513,6 +697,11 @@ const Dashboard = () => {
     const [editThumbnail, setEditThumbnail] = useState(null);
     const [isSavingEdit, setIsSavingEdit] = useState(false);
     const [editError, setEditError] = useState(null);
+
+    // Delete confirmation modal state
+    const [videoToDelete, setVideoToDelete] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState(null);
 
     const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
 
@@ -536,9 +725,7 @@ const Dashboard = () => {
             setRecentSubscribers(subsRes.data.data || []);
             setAnalytics(analyticsRes.data.data || []);
         } catch (err) {
-            setError(
-                err.response?.data?.message || "Failed to load dashboard data"
-            );
+            setError(err.response?.data?.message || "Failed to load dashboard data");
         } finally {
             setIsLoading(false);
         }
@@ -549,9 +736,8 @@ const Dashboard = () => {
             setIsLoading(false);
             return;
         }
-
         fetchDashboard();
-    }, [authUser?._id]);
+    }, [authUser?._id, videoPublishedVersion]);
 
     const handleVideoClick = (video) => {
         openSelectedVideo(video._id);
@@ -559,28 +745,103 @@ const Dashboard = () => {
         navigate("/watch");
     };
 
-    // Table action handlers — wire these to your real video routes
+    // ---------------- Edit ----------------
+
     const handleUpdateVideo = (video) => {
-        // Adjust the route to match your video-edit page/endpoint
-        window.location.href = `/video/edit/${video._id}`;
+        setEditingVideo(video);
+        setEditTitle(video.title || "");
+        setEditDescription(video.description || "");
+        setEditVideoFile(null);
+        setEditThumbnail(null);
+        setEditError(null);
+        setIsEditModalOpen(true);
     };
 
-    const handleDeleteVideo = async (video) => {
-        const confirmed = window.confirm(
-            `Delete "${video.title}"? This can't be undone.`
-        );
-        if (!confirmed) return;
+    const handleSaveEdit = async () => {
+        if (!editingVideo) return;
 
-        const prev = recentVideos;
-        setRecentVideos((cur) => cur.filter((v) => v._id !== video._id)); // optimistic
+        const trimmedTitle = editTitle.trim();
+        const trimmedDescription = editDescription.trim();
+
+        // Only send fields that actually changed — an untouched/blank
+        // description field should never overwrite the saved one.
+        const titleChanged = trimmedTitle !== (editingVideo.title || "");
+        const descriptionChanged =
+            trimmedDescription !== (editingVideo.description || "");
+
+        if (
+            !titleChanged &&
+            !descriptionChanged &&
+            !editVideoFile &&
+            !editThumbnail
+        ) {
+            setIsEditModalOpen(false);
+            setEditingVideo(null);
+            return; // nothing to save
+        }
+
+        if (titleChanged && !trimmedTitle) {
+            setEditError("Title can't be empty.");
+            return;
+        }
+
+        setIsSavingEdit(true);
+        setEditError(null);
 
         try {
-            await axiosInstance.delete(`/videos/${video._id}`);
-        } catch (err) {
-            setRecentVideos(prev); // roll back on failure
-            alert(
-                err.response?.data?.message || "Failed to delete video. Try again."
+            const formData = new FormData();
+
+            if (titleChanged) formData.append("title", trimmedTitle);
+            if (descriptionChanged) formData.append("description", trimmedDescription);
+            if (editVideoFile) formData.append("videoFile", editVideoFile);
+            if (editThumbnail) formData.append("thumbnail", editThumbnail);
+
+            const response = await axiosInstance.patch(
+                `/videos/update/${editingVideo._id}`,
+                formData,
+                { headers: { "Content-Type": "multipart/form-data" } }
             );
+
+            const updatedVideo = response.data.data;
+
+            setRecentVideos((cur) =>
+                cur.map((v) => (v._id === updatedVideo._id ? { ...v, ...updatedVideo } : v))
+            );
+            setTopVideos((cur) =>
+                cur.map((v) => (v._id === updatedVideo._id ? { ...v, ...updatedVideo } : v))
+            );
+
+            setIsEditModalOpen(false);
+            setEditingVideo(null);
+        } catch (err) {
+            setEditError(err.response?.data?.message || "Failed to update video. Try again.");
+        } finally {
+            setIsSavingEdit(false);
+        }
+    };
+
+    // ---------------- Delete ----------------
+
+    const handleDeleteVideo = (video) => {
+        setVideoToDelete(video);
+        setDeleteError(null);
+    };
+
+    const confirmDeleteVideo = async () => {
+        if (!videoToDelete) return;
+
+        setIsDeleting(true);
+        setDeleteError(null);
+
+        try {
+            await axiosInstance.delete(`/videos/${videoToDelete._id}`);
+            setRecentVideos((cur) => cur.filter((v) => v._id !== videoToDelete._id));
+            setTopVideos((cur) => cur.filter((v) => v._id !== videoToDelete._id));
+            setVideoToDelete(null);
+        } catch (err) {
+            setDeleteError(err.response?.data?.message || "Failed to delete video. Try again.");
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -623,12 +884,7 @@ const Dashboard = () => {
     let content;
 
     if (isCheckingAuth || isLoading) {
-        content = (
-            <div className="flex flex-col items-center justify-center py-32 text-gray-400">
-                <Loader2 size={36} className="animate-spin" />
-                <p className="mt-4 text-sm">Loading dashboard…</p>
-            </div>
-        );
+        content = <DashboardSkeleton />;
     } else if (!authUser) {
         content = (
             <div className="flex flex-col items-center justify-center py-32 text-center">
@@ -657,14 +913,12 @@ const Dashboard = () => {
     } else {
         content = (
             <div className="space-y-6">
-                {/* Stat cards */}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     {stats.map((s) => (
                         <StatCard key={s.label} {...s} />
                     ))}
                 </div>
 
-                {/* Graph (center/left, big) + Top Videos (right rail) */}
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                     <SectionCard title="Views Analytics" className="lg:col-span-2">
                         <ViewsChart analytics={analytics} />
@@ -678,7 +932,12 @@ const Dashboard = () => {
                         {topVideos.length ? (
                             <div className="divide-y divide-gray-100">
                                 {topVideos.map((v, i) => (
-                                    <TopVideoRow key={v._id} video={v} rank={i + 1} />
+                                    <TopVideoRow
+                                        key={v._id}
+                                        video={v}
+                                        rank={i + 1}
+                                        onVideoClick={handleVideoClick}
+                                    />
                                 ))}
                             </div>
                         ) : (
@@ -687,7 +946,6 @@ const Dashboard = () => {
                     </SectionCard>
                 </div>
 
-                {/* Recent videos table */}
                 <SectionCard
                     title="Recent Uploads"
                     icon={PlayCircle}
@@ -697,10 +955,10 @@ const Dashboard = () => {
                         videos={recentVideos}
                         onUpdate={handleUpdateVideo}
                         onDelete={handleDeleteVideo}
+                        onVideoClick={handleVideoClick}
                     />
                 </SectionCard>
 
-                {/* Recent subscribers — horizontal row */}
                 <SectionCard
                     title="Recent Subscribers"
                     icon={UserPlus}
@@ -763,6 +1021,162 @@ const Dashboard = () => {
                     {content}
                 </div>
             </main>
+
+            {/* Edit modal */}
+            {isEditModalOpen && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+                    onClick={() => !isSavingEdit && setIsEditModalOpen(false)}
+                >
+                    <div
+                        className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="mb-4 flex items-center justify-between">
+                            <h3 className="text-base font-semibold text-gray-900">
+                                Edit Video
+                            </h3>
+                            <button
+                                type="button"
+                                onClick={() => setIsEditModalOpen(false)}
+                                className="rounded-full p-1.5 hover:bg-gray-100"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                                    Title
+                                </label>
+                                <input
+                                    type="text"
+                                    value={editTitle}
+                                    onChange={(e) => setEditTitle(e.target.value)}
+                                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                                    Description
+                                </label>
+                                <textarea
+                                    value={editDescription}
+                                    onChange={(e) => setEditDescription(e.target.value)}
+                                    rows={3}
+                                    placeholder="Leave unchanged to keep the current description"
+                                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                />
+                                <p className="mt-1 text-xs text-gray-400">
+                                    Only edited fields are sent — clearing this box will
+                                    save it as empty, not leave the old text.
+                                </p>
+                            </div>
+
+                            <FilePicker
+                                label="Replace Video"
+                                icon={FileVideo}
+                                accept="video/*"
+                                file={editVideoFile}
+                                onChange={setEditVideoFile}
+                                hint="MP4, WebM, or MOV"
+                            />
+
+                            <FilePicker
+                                label="Replace Thumbnail"
+                                icon={ImageIcon}
+                                accept="image/*"
+                                file={editThumbnail}
+                                onChange={setEditThumbnail}
+                                hint="PNG or JPG, 16:9 recommended"
+                            />
+
+                            {editError && (
+                                <p className="text-sm text-red-500">{editError}</p>
+                            )}
+
+                            <div className="flex items-center justify-end gap-2 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsEditModalOpen(false)}
+                                    disabled={isSavingEdit}
+                                    className="rounded-full px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleSaveEdit}
+                                    disabled={isSavingEdit}
+                                    className="flex items-center cursor-pointer gap-2 rounded-full bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+                                >
+                                    {isSavingEdit && (
+                                        <Loader2 size={14} className="animate-spin" />
+                                    )}
+                                    {isSavingEdit ? "Saving…" : "Save changes"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete confirmation modal */}
+            {videoToDelete && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+                    onClick={() => !isDeleting && setVideoToDelete(null)}
+                >
+                    <div
+                        className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-start gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-500">
+                                <Trash2 size={18} />
+                            </div>
+                            <div className="min-w-0">
+                                <h3 className="text-base font-semibold text-gray-900">
+                                    Delete this video?
+                                </h3>
+                                <p className="mt-1 text-sm text-gray-500">
+                                    "
+                                    <span className="font-medium text-gray-700">
+                                        {videoToDelete.title}
+                                    </span>
+                                    " will be permanently removed. This can't be undone.
+                                </p>
+                            </div>
+                        </div>
+
+                        {deleteError && (
+                            <p className="mt-3 text-sm text-red-500">{deleteError}</p>
+                        )}
+
+                        <div className="mt-5 flex items-center justify-end gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setVideoToDelete(null)}
+                                disabled={isDeleting}
+                                className="rounded-full cursor-pointer px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={confirmDeleteVideo}
+                                disabled={isDeleting}
+                                className="flex items-center cursor-pointer gap-2 rounded-full bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                            >
+                                {isDeleting && <Loader2 size={14} className="animate-spin" />}
+                                {isDeleting ? "Deleting…" : "Delete"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

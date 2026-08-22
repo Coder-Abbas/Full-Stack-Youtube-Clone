@@ -106,6 +106,7 @@ const Setting = () => {
         updateError,
         avatarError,
         passwordError,
+        channelUpdatedVersion,
     } = useChannelStore();
 
 
@@ -124,7 +125,7 @@ const Setting = () => {
         if (!authUser || isCheckingAuth) return;
 
         getMyChannel();
-    }, [authUser, isCheckingAuth, getMyChannel]);
+    }, [authUser, isCheckingAuth, getMyChannel, channelUpdatedVersion]);
 
 
     // ==========================================

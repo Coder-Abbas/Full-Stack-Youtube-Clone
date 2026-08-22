@@ -33,6 +33,7 @@ const AllSubscriptions = () => {
         hasFetchedSubscribedChannels,
         getSubscribedChannels,
         toggleChannelSubscription,
+        videoPublishedVersion,
     } = useVideoStore();
 
     // ==========================================
@@ -59,6 +60,7 @@ const AllSubscriptions = () => {
         isCheckingAuth,
         hasFetchedSubscribedChannels,
         getSubscribedChannels,
+        videoPublishedVersion,
     ]);
 
     const channelList = Array.isArray(subscribedChannels)

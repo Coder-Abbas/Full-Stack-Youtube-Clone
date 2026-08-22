@@ -83,6 +83,7 @@ const WatchHistory = () => {
         isLoading,
         error,
         getWatchHistory,
+        videoPublishedVersion,
     } = useVideoStore();
 
     // ==========================================
@@ -107,6 +108,7 @@ const WatchHistory = () => {
         authUser,
         isCheckingAuth,
         getWatchHistory,
+        videoPublishedVersion,
     ]);
 
     // ==========================================

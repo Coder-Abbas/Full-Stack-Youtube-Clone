@@ -36,6 +36,7 @@ const WatchLater = () => {
         isWatchLaterLoading,
         watchLaterError,
         getWatchLaterVideos,
+        videoPublishedVersion,
     } = useVideoStore();
 
 
@@ -62,6 +63,7 @@ const WatchLater = () => {
         authUser,
         isCheckingAuth,
         getWatchLaterVideos,
+        videoPublishedVersion,
     ]);
 
 

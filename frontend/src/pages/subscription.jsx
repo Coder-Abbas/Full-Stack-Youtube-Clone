@@ -58,6 +58,7 @@ const Subscription = () => {
         isSubscriptionDataLoading,
         subscriptionDataError,
         getSubscriptionData,
+        videoPublishedVersion,
     } = useVideoStore();
 
     // ==========================================
@@ -79,6 +80,7 @@ const Subscription = () => {
         authUser,
         isCheckingAuth,
         getSubscriptionData,
+        videoPublishedVersion,
     ]);
 
     // ==========================================

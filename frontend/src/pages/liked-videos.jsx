@@ -36,6 +36,7 @@ const LikedVideos = () => {
         isLikedVideosLoading,
         likedVideosError,
         getLikedVideos,
+        videoPublishedVersion,
     } = useVideoStore();
 
 
@@ -62,6 +63,7 @@ const LikedVideos = () => {
         authUser,
         isCheckingAuth,
         getLikedVideos,
+        videoPublishedVersion,
     ]);
 
 

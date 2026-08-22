@@ -15,6 +15,7 @@ import ProfileVideoCard from "../components/videoCards/myProfileCard";
 import ProfileSkeleton from "../components/ProfileSkeleton";
 import axiosInstance from "../api/axiosInstance";
 import useAuthStore from "../store/authStore";
+import useChannelStore from "../store/channelStore";
 import { useResponsiveSidebar } from "../hooks/useResponsiveSidebar";
 
 const ChannelPage = () => {
@@ -35,6 +36,8 @@ const ChannelPage = () => {
     const [totalSubscribers, setTotalSubscribers] = useState(0);
 
     const { authUser } = useAuthStore();
+
+    const { channelUpdatedVersion } = useChannelStore();
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -100,7 +103,7 @@ const ChannelPage = () => {
         if (username) {
             fetchChannel();
         }
-    }, [username]);
+    }, [username, channelUpdatedVersion]);
 
 
     const handleSubscribe = async () => {
