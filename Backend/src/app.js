@@ -82,14 +82,6 @@ app.use(
 );
 
 
-// ==========================================
-// Global error-handling middleware
-// Converts thrown errors (including APIError from
-// controllers/middlewares) into a clean JSON
-// response instead of Express's default HTML
-// stack trace. Must be the LAST app.use().
-// ==========================================
-
 app.use((err, req, res, next) => {
     const statusCode = err?.statusCode || err?.status || 500;
     const message = err?.message || "Internal Server Error";
