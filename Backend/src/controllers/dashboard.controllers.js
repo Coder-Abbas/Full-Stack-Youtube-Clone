@@ -7,7 +7,6 @@ import { Like } from "../models/like.models.js"
 import { Comment } from "../models/comment.models.js"
 import { Tweet } from "../models/tweet.models.js"
 import {Subscription} from "../models/subscription.models.js"
-import { VideoAnalytics } from "../models/dashboard.models.js"
 
 
 
@@ -20,7 +19,7 @@ const getOverviewData = asyncHandler(async (req, res, next) => {
 
     // Total subscribers
     const totalSubscribers = await Subscription.countDocuments({
-        subscribedTo: userId
+        channel: userId
     });
 
     // Total videos
@@ -81,20 +80,45 @@ const getTopVideos = asyncHandler(async (req, res, next) => {
         return next(new APIError("Invalid user ID", 400));
     }
 
-    const topVideos = await Video.find({
-        owner: userId,
-        isPublished: true
-    })
-        .sort({ views: -1 })
-        .limit(10)
-        .select("title thumbnail views createdAt duration");
+    const topVideos = await Video.aggregate([
+        {
+            $match: {
+                owner: new mongoose.Types.ObjectId(userId),
+                isPublished: true,
+            },
+        },
+        { $sort: { views: -1 } },
+        { $limit: 10 },
+        {
+            $lookup: {
+                from: "comments",
+                localField: "_id",
+                foreignField: "video",
+                as: "commentDocs",
+            },
+        },
+        {
+            $addFields: {
+                likes: { $ifNull: ["$likesCount", 0] },
+                comments: { $size: "$commentDocs" },
+            },
+        },
+        {
+            $project: {
+                _id: 1,
+                title: 1,
+                thumbnail: 1,
+                views: 1,
+                duration: 1,
+                createdAt: 1,
+                likes: 1,
+                comments: 1,
+            },
+        },
+    ]);
 
     return res.status(200).json(
-        new ApiResponse(
-            200,
-            topVideos,
-            "Top videos fetched successfully"
-        )
+        new ApiResponse(200, topVideos, "Top videos fetched successfully")
     );
 });
 
@@ -107,7 +131,7 @@ const getRecentSubscribers = asyncHandler(async (req, res, next) => {
     }
 
     const subscribers = await Subscription.find({
-        subscribedTo: userId
+        channel: userId
     })
         .sort({ createdAt: -1 })
         .limit(10)
@@ -132,13 +156,42 @@ const getRecentVideos = asyncHandler(async (req, res, next) => {
         return next(new APIError("Invalid user ID", 400));
     }
 
-    const recentVideos = await Video.find({
-        owner: userId,
-        isPublished: true
-    })
-        .sort({ createdAt: -1 })
-        .limit(10)
-        .select("title thumbnail views createdAt duration");
+    const recentVideos = await Video.aggregate([
+        {
+            $match: {
+                owner: new mongoose.Types.ObjectId(userId),
+                isPublished: true,
+            },
+        },
+        { $sort: { createdAt: -1 } },
+        { $limit: 10 },
+        {
+            $lookup: {
+                from: "comments",
+                localField: "_id",
+                foreignField: "video",
+                as: "commentDocs",
+            },
+        },
+        {
+            $addFields: {
+                likes: { $ifNull: ["$likesCount", 0] },
+                comments: { $size: "$commentDocs" },
+            },
+        },
+        {
+            $project: {
+                _id: 1,
+                title: 1,
+                thumbnail: 1,
+                views: 1,
+                duration: 1,
+                createdAt: 1,
+                likes: 1,
+                comments: 1,
+            },
+        },
+    ]);
 
     return res.status(200).json(
         new ApiResponse(
@@ -156,42 +209,42 @@ const getAnalytics = asyncHandler(async (req, res, next) => {
         return next(new APIError("Invalid user ID", 400));
     }
 
-    const analytics = await VideoAnalytics.aggregate([
-        {
-            $match: {
-                owner: new mongoose.Types.ObjectId(userId)
-            }
-        },
-        {
-            $group: {
-                _id: "$date",
+    // Build a cumulative views/likes time-series from the channel's
+    // videos (grouped by upload date). VideoAnalytics snapshots are
+    // not populated by the app, so we derive the series from real data.
+    const videos = await Video.find({
+        owner: new mongoose.Types.ObjectId(userId),
+        isPublished: true,
+    })
+        .sort({ createdAt: 1 })
+        .select("createdAt views likesCount");
 
-                views: {
-                    $sum: "$views"
-                },
+    let cumulativeViews = 0;
+    let cumulativeLikes = 0;
+    const byDate = {};
 
-                likes: {
-                    $sum: "$likes"
-                },
+    for (const v of videos) {
+        const date = v.createdAt
+            ? v.createdAt.toISOString().slice(0, 10)
+            : "unknown";
 
-                comments: {
-                    $sum: "$comments"
-                }
-            }
-        },
-        {
-            $sort: {
-                _id: 1
-            }
-        }
-    ]);
+        cumulativeViews += v.views || 0;
+        cumulativeLikes += v.likesCount || 0;
+
+        byDate[date] = {
+            _id: date,
+            views: cumulativeViews,
+            likes: cumulativeLikes,
+            comments: 0,
+        };
+    }
+
+    const analytics = Object.values(byDate).sort((a, b) =>
+        a._id < b._id ? -1 : a._id > b._id ? 1 : 0
+    );
 
     return res.status(200).json(
-        new ApiResponse(
-            200,
-            analytics,
-            "Analytics fetched successfully"
-        )
+        new ApiResponse(200, analytics, "Analytics fetched successfully")
     );
 });
 

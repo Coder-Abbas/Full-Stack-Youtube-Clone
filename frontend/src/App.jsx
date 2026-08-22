@@ -16,6 +16,7 @@ import WatchLater from './pages/watchLater'
 import SearchPage from "./pages/searchPage";
 import Playlists from "./pages/Playlists";
 import PlaylistDetail from "./pages/PlaylistDetail";
+import Dashboard from "./pages/Dashboard/dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import useVideoStore from "./store/videoStore";
 import useChannelStore from "./store/channelStore";
@@ -31,6 +32,7 @@ const protectedRoutes = [
     { path: "/subscription", element: <Subscription /> },
     { path: "/watch-later", element: <WatchLater /> },
     { path: "/playlists", element: <Playlists /> },
+    { path: "/dashboard", element: <Dashboard /> },
 ];
 
 const App = () => {

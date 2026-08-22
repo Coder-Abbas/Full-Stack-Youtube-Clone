@@ -10,6 +10,7 @@ import {
     ListVideo,
     Settings,
     LogIn,
+    LayoutDashboard,
 } from "lucide-react";
 
 import useAuthStore from "../store/authStore";
@@ -48,6 +49,11 @@ const Sidebar = ({ isSidebarOpen }) => {
             name: "Profile",
             path: "/profile",
             icon: User,
+        },
+        {
+            name: "Dashboard",
+            path: "/dashboard",
+            icon: LayoutDashboard,
         },
     ];
 

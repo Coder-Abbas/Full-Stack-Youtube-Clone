@@ -605,7 +605,11 @@ const deleteVideo = asyncHandler(async (req, res) => {
         throw new APIError(403, "You are not authorized to delete this video")
     }
 
-    //4. delete the video from database
+    //4. delete associated likes and comments before removing the video
+    await Like.deleteMany({ video: videoId });
+    await Comment.deleteMany({ video: videoId });
+
+    //5. delete the video from database
     const oldVideo = video.videoFile;
     const oldThumbnail = video.thumbnail;
 
@@ -614,7 +618,7 @@ const deleteVideo = asyncHandler(async (req, res) => {
     await deleteOldVideo(oldVideo);
     await deletepicold(oldThumbnail);
 
-    //5. return response
+    //6. return response
     return res.status(200)
         .json(
             new ApiResponse(200, null, "Video deleted successfully")

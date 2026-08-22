@@ -6,6 +6,7 @@ import {
     LogOut,
     UserCircle,
     Upload,
+    LayoutDashboard,
 } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import useAuthStore from "../../store/authStore";
@@ -230,6 +231,19 @@ const Navbar = ({ toggleSidebar = () => {} }) => {
 
                                 {menuOpen && (
                                     <div className="absolute right-0 top-12 z-50 w-44 rounded-xl border border-gray-200 bg-white py-2 shadow-lg">
+                                        <Link
+                                            type="button"
+                                            onClick={() => {
+                                                setMenuOpen(false);
+                                            }}
+                                            to="/dashboard"
+                                            className="flex w-full cursor-pointer items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 transition hover:bg-gray-100"
+                                        >
+                                            <LayoutDashboard size={16} />
+
+                                            Dashboard
+                                        </Link>
+
                                         <Link
                                             type="button"
                                             onClick={() => {

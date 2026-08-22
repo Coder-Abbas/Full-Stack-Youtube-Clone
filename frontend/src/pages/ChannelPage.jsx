@@ -219,7 +219,7 @@ const ChannelPage = () => {
                 className={`absolute top-16 bottom-0 right-0 transition-all duration-300 ${getMainLeftClass(isSidebarOpen)}`}
             >
                 <div className="h-full max-w-7xl mx-auto flex flex-col">
-                    <section className="flex-shrink-0 px-6 md:px-10 pt-8 pb-6 bg-[#f9f9f9]">
+                    <section className="flex-shrink-0 px-6 md:px-10 pt-8 pb-2 bg-[#f9f9f9]">
                         <div className="flex flex-col md:flex-row md:items-center gap-6">
                             {/* Avatar - read only, no edit menu */}
                             <div className="relative flex-shrink-0">
@@ -389,7 +389,7 @@ const ChannelPage = () => {
                                              p-2.5
                                              rounded-full
                                              hover:bg-gray-200
-                                             transition
+                                             transition cursor-pointer
                                              text-gray-700
                                          "
                                          title="Search videos"
@@ -442,7 +442,7 @@ const ChannelPage = () => {
                                                  p-2
                                                  rounded-full
                                                  hover:bg-gray-200
-                                                 transition
+                                                 transition cursor-pointer
                                              "
                                          >
                                              <X size={20} />
@@ -455,10 +455,10 @@ const ChannelPage = () => {
                         {/* =================================================
                             SCROLLABLE CONTENT AREA
                         ================================================== */}
-                        <div className="h-full overflow-y-auto pb-10">
+                        <div className="h-full overflow-y-hidden pb-10">
                             {/* ================= VIDEOS (read-only) ================= */}
                             {activeTab === "videos" && (
-                                <div className="pt-6">
+                                <div className="pt-3">
                                     {filteredVideos.length === 0 ? (
                                         <div className="rounded-2xl py-10 text-center">
                                             <Video

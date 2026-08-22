@@ -320,7 +320,7 @@ const Profile = () => {
                     }`}
             >
                 <div className="h-full max-w-7xl mx-auto flex flex-col">
-                    <section className="flex-shrink-0 px-6 md:px-10 pt-8 pb-6 bg-[#f9f9f9]">
+                    <section className="flex-shrink-0 px-6 md:px-10 pt-8 pb-2 bg-[#f9f9f9]">
 
                         <div className="flex flex-col md:flex-row md:items-center gap-6">
 
@@ -476,7 +476,7 @@ const Profile = () => {
                         </div>
 
                         {/* Divider */}
-                        <div className="mt-7 border-b border-gray-200" />
+                        <div className="mt-3 border-b border-gray-200" />
                     </section>
 
                     {/* =====================================================
@@ -521,7 +521,7 @@ const Profile = () => {
                                     onClick={() => setActiveTab("posts")}
                                     className={`
                                         relative
-                                        py-4
+                                        py-2
                                         cursor-pointer
                                         font-medium
                                         whitespace-nowrap
