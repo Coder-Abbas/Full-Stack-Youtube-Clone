@@ -119,7 +119,7 @@ const Subscription = () => {
                         z-40
                         transition-all
                         duration-300
-                        ${isSidebarOpen ? "w-50" : "w-20"}
+                        ${isSidebarOpen ? "w-50" : "w-14 sm:w-20"}
                     `}
                 >
                     <Sidebar isSidebarOpen={isSidebarOpen} />
@@ -134,7 +134,7 @@ const Subscription = () => {
                         overflow-y-auto
                         transition-all
                         duration-300
-                        ${isSidebarOpen ? "left-50" : "left-20"}
+                        ${isSidebarOpen ? "left-50" : "left-14 sm:left-20"}
                     `}
                 >
                     <div className="flex flex-col items-center justify-center h-full">
@@ -188,7 +188,7 @@ const Subscription = () => {
                     z-40
                     transition-all
                     duration-300
-                    ${isSidebarOpen ? "w-50" : "w-20"}
+                    ${isSidebarOpen ? "w-50" : "w-14 sm:w-20"}
                 `}
             >
                 <Sidebar isSidebarOpen={isSidebarOpen} />
@@ -203,7 +203,7 @@ const Subscription = () => {
                     overflow-y-auto
                     transition-all
                     duration-300
-                    ${isSidebarOpen ? "left-50" : "left-20"}
+                    ${isSidebarOpen ? "left-50" : "left-14 sm:left-20"}
                 `}
             >
                 <div className="p-6">

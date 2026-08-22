@@ -168,7 +168,7 @@ const SearchPage = () => {
                     ${
                         isSidebarOpen
                             ? "w-50"
-                            : "w-20"
+                            : "w-14 sm:w-20"
                     }
                 `}
             >
@@ -194,7 +194,7 @@ const SearchPage = () => {
                     ${
                         isSidebarOpen
                             ? "left-50"
-                            : "left-20"
+                            : "left-14 sm:left-20"
                     }
                 `}
             >

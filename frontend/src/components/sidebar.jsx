@@ -11,6 +11,7 @@ import {
     Settings,
     LogIn,
     LayoutDashboard,
+    Shield,
 } from "lucide-react";
 
 import useAuthStore from "../store/authStore";
@@ -19,10 +20,6 @@ const Sidebar = ({ isSidebarOpen }) => {
     const location = useLocation();
 
     const { authUser, isCheckingAuth } = useAuthStore();
-
-    // ==========================================
-    // Main menu for logged-in users
-    // ==========================================
 
     const authenticatedMenuItems = [
         {
@@ -57,10 +54,6 @@ const Sidebar = ({ isSidebarOpen }) => {
         },
     ];
 
-    // ==========================================
-    // Secondary menu
-    // ==========================================
-
     const secondaryMenuItems = [
         {
             name: "Playlists",
@@ -74,21 +67,12 @@ const Sidebar = ({ isSidebarOpen }) => {
         },
     ];
 
-    // ==========================================
-    // Check active route
-    // ==========================================
-
     const isActiveRoute = (path) => {
         if (path === "/") {
             return location.pathname === "/";
         }
-
         return location.pathname === path;
     };
-
-    // ==========================================
-    // Menu item component
-    // ==========================================
 
     const MenuItem = ({ item }) => {
         const Icon = item.icon;
@@ -135,8 +119,6 @@ const Sidebar = ({ isSidebarOpen }) => {
         );
     };
 
- 
-
     return (
         <aside
             className={`
@@ -148,17 +130,13 @@ const Sidebar = ({ isSidebarOpen }) => {
                 transition-all
                 duration-300
                 ease-in-out
-                ${isSidebarOpen ? "w-50" : "w-20"}
+                ${isSidebarOpen ? "w-50" : "w-15"}
             `}
         >
             <div className="h-full overflow-y-auto px-3 py-4">
 
-                {/* ==========================================
-                    HOME
-                ========================================== */}
-
+                {/* Home */}
                 <div className="space-y-1">
-
                     <MenuItem
                         item={{
                             name: "Home",
@@ -166,19 +144,57 @@ const Sidebar = ({ isSidebarOpen }) => {
                             icon: Home,
                         }}
                     />
-
                 </div>
 
-                {/* ==========================================
-                    AUTHENTICATED USER MENU
-                ========================================== */}
+                {/* Admin Link */}
+                {authUser && authUser.role === "admin" && (
+                    <>
+                        <div className="my-4 border-t border-gray-200" />
+                        <Link
+                            to="/admin"
+                            className={`
+                                group
+                                flex
+                                items-center
+                                ${isSidebarOpen
+                                    ? "gap-5 px-5"
+                                    : "justify-center px-1"
+                                }
+                                py-3
+                                rounded-xl
+                                cursor-pointer
+                                transition-all
+                                duration-200
+                                ${
+                                    location.pathname.startsWith("/admin")
+                                        ? "bg-red-50 text-red-600 font-semibold"
+                                        : "text-red-600 hover:bg-red-50 hover:text-red-700"
+                                }
+                            `}
+                        >
+                            <Shield
+                                size={22}
+                                className="
+                                    flex shrink-0
+                                    transition-transform
+                                "
+                            />
 
+                            {isSidebarOpen && (
+                                <span className="text-sm whitespace-nowrap">
+                                    Admin Panel
+                                </span>
+                            )}
+                        </Link>
+                    </>
+                )}
+
+                {/* Authenticated User Menu */}
                 {authUser && (
                     <>
-                        {/* Main Menu */}
+                        <div className="my-4 border-t border-gray-200" />
 
                         <div className="mt-2 space-y-1">
-
                             {authenticatedMenuItems
                                 .filter((item) => item.path !== "/")
                                 .map((item) => (
@@ -189,31 +205,20 @@ const Sidebar = ({ isSidebarOpen }) => {
                                 ))}
                         </div>
 
-                        {/* Divider */}
-
                         <div className="my-4 border-t border-gray-200" />
 
-                        {/* Secondary Menu */}
-
                         <div className="space-y-1">
-
                             {secondaryMenuItems.map((item) => (
                                 <MenuItem
                                     key={item.path}
                                     item={item}
                                 />
                             ))}
-
                         </div>
-
-                        {/* Divider */}
 
                         <div className="my-4 border-t border-gray-200" />
 
-                        {/* Settings */}
-
                         <div className="space-y-1">
-
                             <MenuItem
                                 item={{
                                     name: "Settings",
@@ -221,22 +226,14 @@ const Sidebar = ({ isSidebarOpen }) => {
                                     icon: Settings,
                                 }}
                             />
-
                         </div>
                     </>
                 )}
 
-                {/* ==========================================
-                    NOT LOGGED IN
-                ========================================== */}
-
+                {/* Not Logged In */}
                 {!authUser && (
                     <>
-                        {/* Divider */}
-
                         <div className="my-4 border-t border-gray-200" />
-
-                        {/* Login */}
 
                         <Link
                             to="/login"
@@ -258,6 +255,7 @@ const Sidebar = ({ isSidebarOpen }) => {
                                 duration-200
                                 hover:bg-blue-500
                                 hover:text-white
+                                cursor-pointer
                             "
                         >
                             <LogIn

@@ -101,7 +101,7 @@ const LikedVideos = () => {
                         z-40
                         transition-all
                         duration-300
-                        ${isSidebarOpen ? "w-50" : "w-20"}
+                        ${isSidebarOpen ? "w-50" : "w-14 sm:w-20"}
                     `}
                 >
                     <Sidebar
@@ -119,7 +119,7 @@ const LikedVideos = () => {
                         overflow-y-auto
                         transition-all
                         duration-300
-                        ${isSidebarOpen ? "left-50" : "left-20"}
+                        ${isSidebarOpen ? "left-50" : "left-14 sm:left-20"}
                     `}
                 >
                     <div className="p-6">
@@ -157,7 +157,7 @@ const LikedVideos = () => {
                         z-40
                         transition-all
                         duration-300
-                        ${isSidebarOpen ? "w-50" : "w-20"}
+                        ${isSidebarOpen ? "w-50" : "w-14 sm:w-14"}
                     `}
                 >
                     <Sidebar
@@ -175,7 +175,7 @@ const LikedVideos = () => {
                         overflow-y-auto
                         transition-all
                         duration-300
-                        ${isSidebarOpen ? "left-50" : "left-20"}
+                        ${isSidebarOpen ? "left-50" : "left-14 sm:left-14"}
                     `}
                 >
                     <div
@@ -254,7 +254,7 @@ const LikedVideos = () => {
                     z-40
                     transition-all
                     duration-300
-                    ${isSidebarOpen ? "w-50" : "w-20"}
+                    ${isSidebarOpen ? "w-50" : "w-14 sm:w-14"}
                 `}
             >
                 <Sidebar
@@ -276,14 +276,14 @@ const LikedVideos = () => {
                     overflow-y-auto
                     transition-all
                     duration-300
-                    ${isSidebarOpen ? "left-50" : "left-20"}
+                    ${isSidebarOpen ? "left-50" : "left-14 sm:left-14"}
                 `}
             >
                 <div className="p-6">
 
                     {/* Header */}
 
-                    <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center justify-between mb-4">
 
                         <h1 className="text-2xl font-bold text-gray-900">
                             Liked Videos
@@ -371,7 +371,7 @@ const LikedVideos = () => {
                             >
 
                                 <Video
-                                    size={80}
+                                    size={70}
                                     className="text-gray-300 mb-4"
                                 />
 
@@ -401,7 +401,7 @@ const LikedVideos = () => {
                         !likedVideosError &&
                         videoList.length > 0 && (
                             <div
-                                className="video-grid-responsive"
+                                className="video-grid-responsive pr-3 pl-0"
                             >
                                 {videoList.map((video) => (
                                     <HomePageCard

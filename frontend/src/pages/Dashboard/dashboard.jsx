@@ -226,7 +226,7 @@ const DashboardSkeleton = () => (
 // ----------------------------------------------------------
 
 const StatCard = ({ icon: Icon, label, value, color, change }) => (
-    <div className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
+    <div className="group relative overflow-hidden rounded-2xl cursor-pointer border border-gray-200 bg-white p-5 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
         <div className="flex items-center gap-4">
             <div
                 className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${color} shadow-sm`}
@@ -234,19 +234,12 @@ const StatCard = ({ icon: Icon, label, value, color, change }) => (
                 <Icon size={22} />
             </div>
 
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 cursor-pointer">
                 <p className="truncate text-sm font-medium text-gray-500">{label}</p>
                 <p className="mt-1 text-2xl font-bold text-gray-900 tracking-tight">
                     {formatCount(value)}
                 </p>
             </div>
-        </div>
-
-        <div className="mt-3 flex items-center justify-between">
-            <ChangeBadge change={change} />
-            <span className="text-xs text-gray-400 opacity-0 transition-opacity group-hover:opacity-100">
-                Updated just now
-            </span>
         </div>
     </div>
 );
@@ -278,7 +271,7 @@ const TopVideoRow = ({ video, rank, onVideoClick }) => (
     <button
         type="button"
         onClick={() => onVideoClick?.(video)}
-        className="flex w-full items-center gap-3 py-2.5 text-left transition hover:bg-gray-50"
+        className="flex w-full items-center gap-3 py-2.5 text-left transition hover:bg-gray-100 cursor-pointer"
     >
         <span className="w-4 shrink-0 text-center text-xs font-semibold text-gray-400">
             {rank}
@@ -315,19 +308,19 @@ const RecentVideosTable = ({ videos, onUpdate, onDelete, onVideoClick }) => {
             <table className="w-full min-w-[640px] text-left">
                 <thead>
                     <tr className="border-b border-gray-100 text-xs uppercase tracking-wide text-gray-400">
-                        <th className="py-2 pr-3 font-medium">Video</th>
-                        <th className="py-2 px-3 font-medium">Uploaded</th>
+                        <th className="py-2 pr-3 font-medium cursor-pointer">Video</th>
+                        <th className="py-2 px-3 font-medium cursor-pointer">Uploaded</th>
                         <th className="py-2 px-3 font-medium">
-                            <span className="flex items-center gap-1">
+                            <span className="flex items-center gap-1 cursor-pointer">
                                 <ThumbsUp size={12} /> Likes
                             </span>
                         </th>
                         <th className="py-2 px-3 font-medium">
-                            <span className="flex items-center gap-1">
+                            <span className="flex items-center gap-1 cursor-pointer">
                                 <MessageCircle size={12} /> Comments
                             </span>
                         </th>
-                        <th className="py-2 pl-3 text-right font-medium">Actions</th>
+                        <th className="py-2 pl-3 text-right font-medium cursor-pointer">Actions</th>
                     </tr>
                 </thead>
 
@@ -335,7 +328,7 @@ const RecentVideosTable = ({ videos, onUpdate, onDelete, onVideoClick }) => {
                     {videos.map((v) => (
                         <tr key={v._id} className="group">
                             <td className="py-2.5 pr-3">
-                                <div className="flex min-w-0 items-center gap-3 rounded-lg transition">
+                                <div className="flex min-w-0 items-center cursor-pointer hover:bg-gray-100 gap-3 rounded-lg transition">
                                     <button
                                         type="button"
                                         onClick={() => onVideoClick?.(v)}
@@ -501,7 +494,7 @@ const ViewsChart = ({ analytics }) => {
                 </div>
             </div>
 
-            <div className="relative">
+            <div className="relative cursor-pointer">
                 <svg
                     viewBox={`0 0 ${width} ${height}`}
                     className="w-full overflow-visible"
@@ -913,7 +906,7 @@ const Dashboard = () => {
     } else {
         content = (
             <div className="space-y-6">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 max-w-5xl mx-auto">
                     {stats.map((s) => (
                         <StatCard key={s.label} {...s} />
                     ))}
@@ -993,7 +986,7 @@ const Dashboard = () => {
 
             <aside
                 className={`fixed left-0 top-16 bottom-0 z-40 transition-all duration-300 ${
-                    isSidebarOpen ? "w-50" : "w-20"
+                    isSidebarOpen ? "w-50" : "w-14 sm:w-20"
                 }`}
             >
                 <Sidebar isSidebarOpen={isSidebarOpen} />
@@ -1001,7 +994,7 @@ const Dashboard = () => {
 
             <main
                 className={`absolute top-16 bottom-0 right-0 overflow-y-auto transition-all duration-300 ${
-                    isSidebarOpen ? "left-50" : "left-20"
+                    isSidebarOpen ? "left-50" : "left-14 sm:left-20"
                 }`}
             >
                 <div className="p-6">
@@ -1039,7 +1032,7 @@ const Dashboard = () => {
                             <button
                                 type="button"
                                 onClick={() => setIsEditModalOpen(false)}
-                                className="rounded-full p-1.5 hover:bg-gray-100"
+                                className="rounded-full p-1.5 cursor-pointer hover:bg-gray-100"
                             >
                                 <X size={18} />
                             </button>
@@ -1070,7 +1063,7 @@ const Dashboard = () => {
                                     className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                 />
                                 <p className="mt-1 text-xs text-gray-400">
-                                    Only edited fields are sent — clearing this box will
+                                    Only edited fields are will be changed — clearing this box will
                                     save it as empty, not leave the old text.
                                 </p>
                             </div>
@@ -1102,7 +1095,7 @@ const Dashboard = () => {
                                     type="button"
                                     onClick={() => setIsEditModalOpen(false)}
                                     disabled={isSavingEdit}
-                                    className="rounded-full px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                                    className="rounded-full px-4 cursor-pointer py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50"
                                 >
                                     Cancel
                                 </button>

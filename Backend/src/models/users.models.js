@@ -73,7 +73,12 @@ const userSchema = new Schema(
                 type: mongoose.Schema.Types.ObjectId,
                 ref: "Video"
             }
-        ]
+        ],
+        role: {
+            type: String,
+            enum: ["user", "admin"],
+            default: "user",
+        }
 
 
 

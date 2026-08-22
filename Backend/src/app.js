@@ -49,6 +49,7 @@ import searchRouter from "./routes/search.routes.js";
 import playlistRouter from "./routes/playlist.routes.js";
 import realtimeRouter from "./routes/realtime.routes.js";
 import dashboardRouter from "./routes/dashboard.routes.js";
+import adminRouter from "./routes/admin.routes.js";
 
 
 
@@ -74,6 +75,10 @@ app.use(
 app.use(
     "/api/v1/dashboard",
     dashboardRouter
+);
+app.use(
+    "/api/v1/admin",
+    adminRouter
 );
 
 

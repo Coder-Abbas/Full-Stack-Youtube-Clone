@@ -580,7 +580,7 @@ const Setting = () => {
                         ${
                             isSidebarOpen
                                 ? "w-50"
-                                : "w-20"
+                                : "w-14 sm:w-20"
                         }
                     `}
                 >
@@ -603,8 +603,8 @@ const Setting = () => {
                         ${
                             isSidebarOpen
                                 ? "left-50"
-                                : "left-20"
-                        }
+                                : "left-14 sm:left-20"
+                            }
                     `}
                 >
                     <div className="flex flex-col items-center justify-center h-full">

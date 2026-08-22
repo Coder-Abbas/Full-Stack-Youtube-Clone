@@ -17,33 +17,39 @@ import SearchPage from "./pages/searchPage";
 import Playlists from "./pages/Playlists";
 import PlaylistDetail from "./pages/PlaylistDetail";
 import Dashboard from "./pages/Dashboard/dashboard";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminVideos from "./pages/admin/AdminVideos";
+import AdminComments from "./pages/admin/AdminComments";
+import AdminSettings from "./pages/admin/AdminSettings";
 import ProtectedRoute from "./components/ProtectedRoute";
+import PublicRoute from "./components/PublicRoute";
+import useAuthStore from "./store/authStore";
 import useVideoStore from "./store/videoStore";
 import useChannelStore from "./store/channelStore";
 import axiosInstance from "./api/axiosInstance";
 
-// Routes that require an authenticated user
-const protectedRoutes = [
-    { path: "/liked-videos", element: <LikedVideos /> },
-    { path: "/profile", element: <Profile /> },
-    { path: "/profile/edit", element: <EditProfile /> },
-    { path: "/settings", element: <Setting /> },
-    { path: "/watch-history", element: <WatchHistory /> },
-    { path: "/subscription", element: <Subscription /> },
-    { path: "/watch-later", element: <WatchLater /> },
-    { path: "/playlists", element: <Playlists /> },
-    { path: "/dashboard", element: <Dashboard /> },
+const adminRoutes = [
+    { path: "/admin", element: <AdminDashboard /> },
+    { path: "/admin/users", element: <AdminUsers /> },
+    { path: "/admin/videos", element: <AdminVideos /> },
+    { path: "/admin/comments", element: <AdminComments /> },
+    { path: "/admin/settings", element: <AdminSettings /> },
 ];
 
 const App = () => {
+  const getMe = useAuthStore((state) => state.getMe);
+
+  // ==========================================
+  // Bootstrap auth state on app startup
+  // ==========================================
+  useEffect(() => {
+    getMe();
+  }, [getMe]);
+
   // ==========================================
   // Real-time updates (Server-Sent Events)
-  // On a new video upload (or channel update) the backend pushes an
-  // event; we bump the store version counters so only the components
-  // that depend on them (Home feed, channel/profile) re-render and
-  // refetch — no full-page reload.
   // ==========================================
-
   useEffect(() => {
     const base = axiosInstance.defaults.baseURL || "http://localhost:8000/api/v1";
     const es = new EventSource(`${base}/events`);
@@ -55,6 +61,10 @@ const App = () => {
 
     es.addEventListener("video-published", onVideoPublished);
 
+    es.onerror = () => {
+      es.close();
+    };
+
     return () => {
       es.removeEventListener("video-published", onVideoPublished);
       es.close();
@@ -65,19 +75,33 @@ const App = () => {
     <div>
       <Toaster />
       <Routes>
+        {/* Public routes */}
         <Route path="/" element={<Home />} />
-        <Route path="/watch" element={<SelectVideo />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/channel/:username" element={<ChannelPage />} />
-        <Route path="/search" element={<SearchPage />} />
-        <Route path="/playlist/:playlistId" element={<PlaylistDetail />} />
+        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
 
-        {protectedRoutes.map(({ path, element }) => (
+        {/* Protected routes - require authentication */}
+        
+        <Route path="/watch" element={<ProtectedRoute><SelectVideo /></ProtectedRoute>} />
+        <Route path="/channel/:username" element={<ProtectedRoute><ChannelPage /></ProtectedRoute>} />
+        <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
+        <Route path="/playlist/:playlistId" element={<ProtectedRoute><PlaylistDetail /></ProtectedRoute>} />
+        <Route path="/liked-videos" element={<ProtectedRoute><LikedVideos /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/profile/edit" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><Setting /></ProtectedRoute>} />
+        <Route path="/watch-history" element={<ProtectedRoute><WatchHistory /></ProtectedRoute>} />
+        <Route path="/subscription" element={<ProtectedRoute><Subscription /></ProtectedRoute>} />
+        <Route path="/watch-later" element={<ProtectedRoute><WatchLater /></ProtectedRoute>} />
+        <Route path="/playlists" element={<ProtectedRoute><Playlists /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+
+        {/* Admin routes - require admin role */}
+        {adminRoutes.map(({ path, element }) => (
             <Route
                 key={path}
                 path={path}
-                element={<ProtectedRoute>{element}</ProtectedRoute>}
+                element={<ProtectedRoute roles={["admin"]}>{element}</ProtectedRoute>}
             />
         ))}
       </Routes>

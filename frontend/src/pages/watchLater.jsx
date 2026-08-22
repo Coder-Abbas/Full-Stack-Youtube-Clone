@@ -101,7 +101,7 @@ const WatchLater = () => {
                         z-40
                         transition-all
                         duration-300
-                        ${isSidebarOpen ? "w-50" : "w-20"}
+                        ${isSidebarOpen ? "w-50" : "w-14 sm:w-20"}
                     `}
                 >
                     <Sidebar
@@ -119,7 +119,7 @@ const WatchLater = () => {
                         overflow-y-auto
                         transition-all
                         duration-300
-                        ${isSidebarOpen ? "left-50" : "left-20"}
+                        ${isSidebarOpen ? "left-50" : "left-14 sm:left-20"}
                     `}
                 >
                     <div className="p-6">
@@ -157,7 +157,7 @@ const WatchLater = () => {
                         z-40
                         transition-all
                         duration-300
-                        ${isSidebarOpen ? "w-50" : "w-20"}
+                        ${isSidebarOpen ? "w-50" : "w-14 sm:w-20"}
                     `}
                 >
                     <Sidebar
@@ -175,7 +175,7 @@ const WatchLater = () => {
                         overflow-y-auto
                         transition-all
                         duration-300
-                        ${isSidebarOpen ? "left-50" : "left-20"}
+                        ${isSidebarOpen ? "left-50" : "left-14 sm:left-20"}
                     `}
                 >
                     <div
@@ -254,7 +254,7 @@ const WatchLater = () => {
                     z-40
                     transition-all
                     duration-300
-                    ${isSidebarOpen ? "w-50" : "w-20"}
+                    ${isSidebarOpen ? "w-50" : "w-14 sm:w-20"}
                 `}
             >
                 <Sidebar
@@ -276,7 +276,7 @@ const WatchLater = () => {
                     overflow-y-auto
                     transition-all
                     duration-300
-                    ${isSidebarOpen ? "left-50" : "left-20"}
+                    ${isSidebarOpen ? "left-50" : "left-14 sm:left-20"}
                 `}
             >
                 <div className="p-6">

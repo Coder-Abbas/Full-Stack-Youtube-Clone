@@ -56,12 +56,12 @@ export const useResponsiveSidebar = (initialOpen) => {
   }, []);
 
   const getSidebarWidthClass = useCallback(
-    (isOpen) => (isOpen ? "w-50" : "w-20"),
+    (isOpen) => (isOpen ? "w-50" : "w-14 sm:w-20"),
     []
   );
 
   const getMainLeftClass = useCallback(
-    (isOpen) => (isOpen ? "left-50" : "left-20"),
+    (isOpen) => (isOpen ? "left-50" : "left-14 sm:left-20"),
     []
   );
 
