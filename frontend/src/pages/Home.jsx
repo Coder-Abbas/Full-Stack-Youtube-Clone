@@ -9,11 +9,18 @@ import PlaylistCard from "../components/playlist/PlaylistCard";
 import useVideoStore from "../store/videoStore";
 import useChannelStore from "../store/channelStore";
 import usePlaylistStore from "../store/playlistStore";
+import { useResponsiveSidebar } from "../hooks/useResponsiveSidebar";
 
 
 const Home = () => {
 
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const {
+        isSidebarOpen,
+        toggleSidebar,
+        getSidebarWidthClass,
+        getMainLeftClass,
+        getSidebarAdditionalClass,
+    } = useResponsiveSidebar(true);
 
     const {
         videos,
@@ -39,10 +46,6 @@ const Home = () => {
     // ==========================================
     // Sidebar
     // ==========================================
-
-    const toggleSidebar = () => {
-        setIsSidebarOpen((prev) => !prev);
-    };
 
 
     // ==========================================
@@ -177,11 +180,9 @@ const Home = () => {
                     z-40
                     transition-all
                     duration-300
-
-                    ${isSidebarOpen
-                        ? "w-64"
-                        : "w-20"
-                    }
+                    ${getSidebarWidthClass(isSidebarOpen)}
+                    ${getSidebarAdditionalClass(isSidebarOpen)}
+                    overflow-hidden
                 `}
             >
 
@@ -205,11 +206,7 @@ const Home = () => {
                     overflow-y-auto
                     transition-all
                     duration-300
-
-                    ${isSidebarOpen
-                        ? "left-64"
-                        : "left-20"
-                    }
+                    ${getMainLeftClass(isSidebarOpen)}
                 `}
             >
 
@@ -296,6 +293,7 @@ const Home = () => {
 
                                 <div
                                     className="
+                                        video-grid-responsive
                                         grid
                                         grid-cols-1
                                         sm:grid-cols-2

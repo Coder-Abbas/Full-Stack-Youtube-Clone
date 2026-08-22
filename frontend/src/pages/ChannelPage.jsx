@@ -15,10 +15,11 @@ import ProfileVideoCard from "../components/videoCards/myProfileCard";
 import ProfileSkeleton from "../components/ProfileSkeleton";
 import axiosInstance from "../api/axiosInstance";
 import useAuthStore from "../store/authStore";
+import { useResponsiveSidebar } from "../hooks/useResponsiveSidebar";
 
 const ChannelPage = () => {
     const { username } = useParams();
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const { isSidebarOpen, toggleSidebar, getSidebarWidthClass, getMainLeftClass, getSidebarAdditionalClass } = useResponsiveSidebar(true);
     const [activeTab, setActiveTab] = useState("videos");
     const [searchOpen, setSearchOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
@@ -35,7 +36,19 @@ const ChannelPage = () => {
 
     const { authUser } = useAuthStore();
 
-    const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (searchOpen && !event.target.closest(".search-container")) {
+                setSearchOpen(false);
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [searchOpen]);
 
     useEffect(() => {
         const fetchChannel = async () => {
@@ -139,16 +152,16 @@ const ChannelPage = () => {
                     <Navbar toggleSidebar={toggleSidebar} />
                 </header>
                 <aside
-                    className={`fixed left-0 top-16 bottom-0 z-40 transition-all duration-300 ${
-                        isSidebarOpen ? "w-64" : "w-20"
-                    }`}
+                    className={`
+                        fixed left-0 top-16 bottom-0 z-40 transition-all duration-300 ${getSidebarWidthClass(isSidebarOpen)}
+                        ${getSidebarAdditionalClass(isSidebarOpen)}
+                        overflow-hidden
+                    `}
                 >
                     <Sidebar isSidebarOpen={isSidebarOpen} />
                 </aside>
                 <main
-                    className={`pt-16 transition-all duration-300 ${
-                        isSidebarOpen ? "pl-64" : "pl-20"
-                    }`}
+                    className={`absolute top-16 bottom-0 right-0 transition-all duration-300 ${getMainLeftClass(isSidebarOpen)}`}
                 >
                     <ProfileSkeleton />
                 </main>
@@ -164,16 +177,16 @@ const ChannelPage = () => {
                     <Navbar toggleSidebar={toggleSidebar} />
                 </header>
                 <aside
-                    className={`fixed left-0 top-16 bottom-0 z-40 transition-all duration-300 ${
-                        isSidebarOpen ? "w-64" : "w-20"
-                    }`}
+                    className={`
+                        fixed left-0 top-16 bottom-0 z-40 transition-all duration-300 ${getSidebarWidthClass(isSidebarOpen)}
+                        ${getSidebarAdditionalClass(isSidebarOpen)}
+                        overflow-hidden
+                    `}
                 >
                     <Sidebar isSidebarOpen={isSidebarOpen} />
                 </aside>
                 <main
-                    className={`pt-16 transition-all duration-300 ${
-                        isSidebarOpen ? "pl-64" : "pl-20"
-                    }`}
+                    className={`absolute top-16 bottom-0 right-0 transition-all duration-300 ${getMainLeftClass(isSidebarOpen)}`}
                 >
                     <div className="max-w-6xl mx-auto px-4 py-16 text-center">
                         <p className="text-red-500">{error || "Channel not found"}</p>
@@ -192,18 +205,18 @@ const ChannelPage = () => {
 
             {/* ================= SIDEBAR ================= */}
             <aside
-                className={`fixed left-0 top-16 bottom-0 z-40 transition-all duration-300 ${
-                    isSidebarOpen ? "w-64" : "w-20"
-                }`}
+                className={`
+                    fixed left-0 top-16 bottom-0 z-40 transition-all duration-300 ${getSidebarWidthClass(isSidebarOpen)}
+                    ${getSidebarAdditionalClass(isSidebarOpen)}
+                    overflow-hidden
+                `}
             >
                 <Sidebar isSidebarOpen={isSidebarOpen} />
             </aside>
 
             {/* ================= MAIN ================= */}
             <main
-                className={`pt-16 h-screen transition-all duration-300 ${
-                    isSidebarOpen ? "pl-64" : "pl-20"
-                }`}
+                className={`absolute top-16 bottom-0 right-0 transition-all duration-300 ${getMainLeftClass(isSidebarOpen)}`}
             >
                 <div className="h-full max-w-7xl mx-auto flex flex-col">
                     <section className="flex-shrink-0 px-6 md:px-10 pt-8 pb-6 bg-[#f9f9f9]">
@@ -367,76 +380,76 @@ const ChannelPage = () => {
                                 </button>
                             </div>
 
-                            {/* Search */}
-                            <div className="flex items-center ml-4">
-                                {!searchOpen ? (
-                                    <button
-                                        onClick={() => setSearchOpen(true)}
-                                        className="
-                                            p-2.5
-                                            rounded-full
-                                            hover:bg-gray-200
-                                            transition
-                                            text-gray-700
-                                        "
-                                        title="Search videos"
-                                    >
-                                        <Search size={21} />
-                                    </button>
-                                ) : (
-                                    <div className="flex items-center gap-2">
-                                        <div className="relative">
-                                            <Search
-                                                size={18}
-                                                className="
-                                                    absolute
-                                                    left-3
-                                                    top-1/2
-                                                    -translate-y-1/2
-                                                    text-gray-400
-                                                "
-                                            />
+                             {/* Search */}
+                             <div className="search-container flex items-center ml-4">
+                                 {!searchOpen ? (
+                                     <button
+                                         onClick={() => setSearchOpen(true)}
+                                         className="
+                                             p-2.5
+                                             rounded-full
+                                             hover:bg-gray-200
+                                             transition
+                                             text-gray-700
+                                         "
+                                         title="Search videos"
+                                     >
+                                         <Search size={21} />
+                                     </button>
+                                 ) : (
+                                     <div className="search-dropdown open flex items-center gap-2">
+                                         <div className="relative">
+                                             <Search
+                                                 size={18}
+                                                 className="
+                                                     absolute
+                                                     left-3
+                                                     top-1/2
+                                                     -translate-y-1/2
+                                                     text-gray-400
+                                                 "
+                                             />
 
-                                            <input
-                                                type="text"
-                                                value={searchQuery}
-                                                onChange={(e) => setSearchQuery(e.target.value)}
-                                                placeholder="Search videos..."
-                                                autoFocus
-                                                className="
-                                                    w-48
-                                                    md:w-64
-                                                    pl-10
-                                                    pr-4
-                                                    py-2.5
-                                                    bg-white
-                                                    border
-                                                    border-gray-300
-                                                    rounded-full
-                                                    outline-none
-                                                    focus:border-gray-500
-                                                    transition
-                                                "
-                                            />
-                                        </div>
+                                             <input
+                                                 type="text"
+                                                 value={searchQuery}
+                                                 onChange={(e) => setSearchQuery(e.target.value)}
+                                                 placeholder="Search videos..."
+                                                 autoFocus
+                                                 className="
+                                                     w-48
+                                                     md:w-64
+                                                     pl-10
+                                                     pr-4
+                                                     py-2.5
+                                                     bg-white
+                                                     border
+                                                     border-gray-300
+                                                     rounded-full
+                                                     outline-none
+                                                     focus:border-gray-500
+                                                     transition
+                                                 "
+                                             />
+                                         </div>
 
-                                        <button
-                                            onClick={() => {
-                                                setSearchOpen(false);
-                                                setSearchQuery("");
-                                            }}
-                                            className="
-                                                p-2
-                                                rounded-full
-                                                hover:bg-gray-200
-                                                transition
-                                            "
-                                        >
-                                            <X size={20} />
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
+                                         <button
+                                             onClick={() => {
+                                                 setSearchOpen(false);
+                                                 setSearchQuery("");
+                                             }}
+                                             className="
+                                                 p-2
+                                                 rounded-full
+                                                 hover:bg-gray-200
+                                                 transition
+                                             "
+                                         >
+                                             <X size={20} />
+                                         </button>
+                                     </div>
+                                 )}
+                             </div>
                         </div>
 
                         {/* =================================================
@@ -466,6 +479,7 @@ const ChannelPage = () => {
                                     ) : (
                                         <div
                                             className="
+                                                video-grid-responsive
                                                 grid
                                                 grid-cols-1
                                                 sm:grid-cols-2

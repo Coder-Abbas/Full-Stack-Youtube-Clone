@@ -96,8 +96,8 @@ const Sidebar = ({ isSidebarOpen }) => {
                     flex
                     items-center
                     ${isSidebarOpen
-                        ? "gap-5 px-9"
-                        : "justify-center px-3"
+                        ? "gap-5 px-5"
+                        : "justify-center px-1"
                     }
                     py-3
                     rounded-xl
@@ -142,7 +142,7 @@ const Sidebar = ({ isSidebarOpen }) => {
                 transition-all
                 duration-300
                 ease-in-out
-                ${isSidebarOpen ? "w-58" : "w-20"}
+                ${isSidebarOpen ? "w-52" : "w-20"}
             `}
         >
             <div className="h-full overflow-y-auto px-3 py-4">

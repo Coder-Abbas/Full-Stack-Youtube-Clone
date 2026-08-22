@@ -47,6 +47,7 @@ import likeRoutes from "./routes/like.routes.js";
 import commentRoutes from "./routes/comment.routes.js";
 import searchRouter from "./routes/search.routes.js";
 import playlistRouter from "./routes/playlist.routes.js";
+import realtimeRouter from "./routes/realtime.routes.js";
 
 
 
@@ -64,6 +65,10 @@ app.use(
 app.use(
     "/api/v1/playlists",
     playlistRouter
+);
+app.use(
+    "/api/v1/events",
+    realtimeRouter
 );
 
 

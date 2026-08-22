@@ -16,6 +16,8 @@ import toast from "react-hot-toast";
 const Navbar = ({ toggleSidebar = () => {} }) => {
     const navigate = useNavigate();
     const menuRef = useRef(null);
+    const desktopSearchRef = useRef(null);
+    const mobileSearchRef = useRef(null);
 
     const { authUser, getMe, logout } = useAuthStore();
 
@@ -25,11 +27,9 @@ const Navbar = ({ toggleSidebar = () => {} }) => {
     const [menuOpen, setMenuOpen] = useState(false);
     const [isUploadOpen, setIsUploadOpen] = useState(false);
 
-    // Desktop search
+    // Search toggle
+    const [searchOpen, setSearchOpen] = useState(false);
     const [searchText, setSearchText] = useState("");
-
-    // Mobile search
-    const [mobileSearchText, setMobileSearchText] = useState("");
 
     useEffect(() => {
         // Only fetch the current user once when not already authenticated.
@@ -46,6 +46,13 @@ const Navbar = ({ toggleSidebar = () => {} }) => {
                 !menuRef.current.contains(event.target)
             ) {
                 setMenuOpen(false);
+            }
+
+            const isDesktopSearch = desktopSearchRef.current && desktopSearchRef.current.contains(event.target);
+            const isMobileSearch = mobileSearchRef.current && mobileSearchRef.current.contains(event.target);
+
+            if (!isDesktopSearch && !isMobileSearch) {
+                setSearchOpen(false);
             }
         };
 
@@ -71,10 +78,6 @@ const Navbar = ({ toggleSidebar = () => {} }) => {
         toast.success("Logged out successfully!");
     };
 
-    // ==========================================
-    // DESKTOP SEARCH
-    // ==========================================
-
     const handleSearch = async (e) => {
         e.preventDefault();
 
@@ -82,33 +85,14 @@ const Navbar = ({ toggleSidebar = () => {} }) => {
 
         if (!query) return;
 
-        // Zustand handles API request
         await search(query);
 
-        // Open search page
         navigate(
             `/search?q=${encodeURIComponent(query)}`
         );
-    };
 
-    // ==========================================
-    // MOBILE SEARCH
-    // ==========================================
-
-    const handleMobileSearch = async (e) => {
-        e.preventDefault();
-
-        const query = mobileSearchText.trim();
-
-        if (!query) return;
-
-        // Zustand handles API request
-        await search(query);
-
-        // Open search page
-        navigate(
-            `/search?q=${encodeURIComponent(query)}`
-        );
+        setSearchOpen(false);
+        setSearchText("");
     };
 
     return (
@@ -131,41 +115,83 @@ const Navbar = ({ toggleSidebar = () => {} }) => {
                         onClick={() => navigate("/")}
                         src="/images.png"
                         alt="Logo"
-                        className="h-auto w-28 cursor-pointer object-contain md:w-35"
+                        className="logo-responsive h-auto w-28 cursor-pointer object-contain md:w-32"
                     />
                 </div>
 
                 {/* ==============================
-                    DESKTOP SEARCH
+                    SEARCH TOGGLE
                 ============================== */}
 
-                <form
-                    onSubmit={handleSearch}
+                <div
+                    ref={desktopSearchRef}
                     className="hidden flex-1 max-w-2xl mx-4 md:flex"
                 >
-                    <div className="flex w-full">
-                        <input
-                            type="text"
-                            placeholder="Search..."
-                            value={searchText}
-                            onChange={(e) =>
-                                setSearchText(e.target.value)
-                            }
-                            className="w-full rounded-l-full border border-gray-300 px-4 py-2 outline-none focus:border-blue-500"
-                        />
-
+                    {!searchOpen ? (
                         <button
-                            type="submit"
-                            className="cursor-pointer rounded-r-full border border-l-0 border-gray-300 bg-gray-100 px-5 py-2 transition hover:bg-gray-200"
-                            aria-label="Search"
+                            onClick={() => setSearchOpen(true)}
+                            className="
+                                p-2.5
+                                rounded-full
+                                hover:bg-gray-200
+                                transition
+                                text-gray-700
+                            "
+                            title="Search"
                         >
-                            <Search
-                                size={20}
-                                className="text-gray-700"
-                            />
+                            <Search size={21} />
                         </button>
-                    </div>
-                </form>
+                    ) : (
+                        <form
+                            onSubmit={handleSearch}
+                            className="w-full"
+                        >
+                            <div className="search-dropdown open flex w-full">
+                                <input
+                                    type="text"
+                                    placeholder="Search..."
+                                    value={searchText}
+                                    onChange={(e) =>
+                                        setSearchText(e.target.value)
+                                    }
+                                    className="
+                                        w-full
+                                        rounded-l-full
+                                        border
+                                        border-gray-300
+                                        px-4
+                                        py-2
+                                        outline-none
+                                        focus:border-gray-500
+                                        transition
+                                    "
+                                />
+
+                                <button
+                                    type="submit"
+                                    className="
+                                        cursor-pointer
+                                        rounded-r-full
+                                        border
+                                        border-l-0
+                                        border-gray-300
+                                        bg-gray-100
+                                        px-5
+                                        py-2
+                                        transition
+                                        hover:bg-gray-200
+                                    "
+                                    aria-label="Search"
+                                >
+                                    <Search
+                                        size={20}
+                                        className="text-gray-700"
+                                    />
+                                </button>
+                            </div>
+                        </form>
+                    )}
+                </div>
 
                 <div className="flex items-center gap-3">
                     {authUser ? (
@@ -269,37 +295,77 @@ const Navbar = ({ toggleSidebar = () => {} }) => {
             </div>
 
             {/* ==============================
-                MOBILE SEARCH
+                MOBILE SEARCH TOGGLE
             ============================== */}
 
-            <form
-                onSubmit={handleMobileSearch}
+            <div
+                ref={mobileSearchRef}
                 className="mt-3 flex md:hidden"
             >
-                <div className="flex w-full">
-                    <input
-                        type="text"
-                        placeholder="Search..."
-                        value={mobileSearchText}
-                        onChange={(e) =>
-                            setMobileSearchText(
-                                e.target.value
-                            )
-                        }
-                        className="w-full rounded-l-full border border-gray-300 px-4 py-2 outline-none focus:border-blue-500"
-                    />
-
+                {!searchOpen ? (
                     <button
-                        type="submit"
-                        className="cursor-pointer rounded-r-full border border-l-0 border-gray-300 bg-gray-100 px-5 py-2 transition hover:bg-gray-200"
+                        onClick={() => setSearchOpen(true)}
+                        className="
+                            p-2.5
+                            rounded-full
+                            hover:bg-gray-200
+                            transition
+                            text-gray-700
+                        "
+                        title="Search"
                     >
-                        <Search
-                            size={20}
-                            className="text-gray-700"
-                        />
+                        <Search size={21} />
                     </button>
-                </div>
-            </form>
+                ) : (
+                    <form
+                        onSubmit={handleSearch}
+                        className="w-full"
+                    >
+                        <div className="search-dropdown open flex w-full">
+                            <input
+                                type="text"
+                                placeholder="Search..."
+                                value={searchText}
+                                onChange={(e) =>
+                                    setSearchText(e.target.value)
+                                }
+                                className="
+                                    w-full
+                                    rounded-l-full
+                                    border
+                                    border-gray-300
+                                    px-4
+                                    py-2
+                                    outline-none
+                                    focus:border-gray-500
+                                    transition
+                                "
+                            />
+
+                            <button
+                                type="submit"
+                                className="
+                                    cursor-pointer
+                                    rounded-r-full
+                                    border
+                                    border-l-0
+                                    border-gray-300
+                                    bg-gray-100
+                                    px-5
+                                    py-2
+                                    transition
+                                    hover:bg-gray-200
+                                "
+                            >
+                                <Search
+                                    size={20}
+                                    className="text-gray-700"
+                                />
+                            </button>
+                        </div>
+                    </form>
+                )}
+            </div>
 
             {/* Upload Video Modal */}
 

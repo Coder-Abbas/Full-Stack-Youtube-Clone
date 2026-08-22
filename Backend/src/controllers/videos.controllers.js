@@ -10,6 +10,7 @@ import cloudinary from "cloudinary";
 import { Like } from "../models/like.models.js"
 import { Comment } from "../models/comment.models.js";
 import { Subscription } from "../models/subscription.models.js";
+import { realtimeEmitter } from "../utils/realtime.js";
 
 
 
@@ -97,6 +98,14 @@ const uploadvideo = asyncHandler(async (req, res) => {
     }
 
     //9. return the response
+    // Broadcast to all connected clients so their feeds refresh
+    // in real time (Home, channel pages, etc.)
+    realtimeEmitter.emit("video-published", {
+        videoId: videoInformation._id,
+        owner: videoInformation.owner,
+        createdAt: videoInformation.createdAt,
+    });
+
     return res.status(201)
         .json(
             new ApiResponse(201, videoInformation, "Video uploaded successfully")
