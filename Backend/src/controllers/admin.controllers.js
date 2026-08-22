@@ -5,6 +5,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/users.models.js";
 import { Video } from "../models/video.models.js";
 import { Comment } from "../models/comment.models.js";
+import { Like } from "../models/like.models.js";
 
 // ==========================================
 // Admin Overview
@@ -158,7 +159,10 @@ const deleteUser = asyncHandler(async (req, res) => {
         throw new APIError(404, "User not found");
     }
 
-    // Cascade delete related data
+    if (req.user._id.toString() === userId.toString()) {
+        throw new APIError(403, "You cannot delete your own account");
+    }
+
     const userVideos = await Video.find({ owner: userId }).select("_id");
     const videoIds = userVideos.map((v) => v._id);
 

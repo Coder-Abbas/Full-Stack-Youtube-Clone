@@ -110,7 +110,7 @@ const AdminVideos = () => {
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Search videos..."
-                            className="w-full sm:w-80 pl-10 pr-4 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-pink-500"
+                            className="w-full sm:w-80 pl-10 pr-4 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-red-500"
                         />
                     </form>
                 </div>
@@ -167,7 +167,7 @@ const AdminVideos = () => {
                                                         type="button"
                                                         onClick={() => handleView(video)}
                                                         title="View"
-                                                        className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-blue-50 hover:text-blue-600"
+                                                        className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-blue-50 hover:text-blue-600 cursor-pointer"
                                                     >
                                                         <Eye size={15} />
                                                     </button>
@@ -175,7 +175,7 @@ const AdminVideos = () => {
                                                         type="button"
                                                         onClick={() => handleEdit(video)}
                                                         title="Edit"
-                                                        className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-yellow-50 hover:text-yellow-600"
+                                                        className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-yellow-50 hover:text-yellow-600 cursor-pointer"
                                                     >
                                                         <Edit3 size={15} />
                                                     </button>
@@ -183,7 +183,7 @@ const AdminVideos = () => {
                                                         type="button"
                                                         onClick={() => setDeleteConfirm(video)}
                                                         title="Delete"
-                                                        className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-red-50 hover:text-red-600"
+                                                        className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-red-50 hover:text-red-600 cursor-pointer"
                                                     >
                                                         <Trash2 size={15} />
                                                     </button>
@@ -285,7 +285,7 @@ const AdminVideos = () => {
                                 <button
                                     type="button"
                                     onClick={() => { setViewVideo(null); handleEdit(viewVideo); }}
-                                    className="px-4 py-2 text-sm rounded-full bg-pink-600 text-white hover:bg-pink-700 cursor-pointer"
+                                    className="px-4 py-2 text-sm rounded-full bg-red-600 text-white hover:bg-red-700 cursor-pointer"
                                 >
                                     Edit
                                 </button>
@@ -329,7 +329,7 @@ const AdminVideos = () => {
                                         type="text"
                                         value={editTitle}
                                         onChange={(e) => setEditTitle(e.target.value)}
-                                        className="w-full rounded-xl border border-gray-200 px-4 py-2 text-sm outline-none focus:border-pink-500"
+                                        className="w-full rounded-xl border border-gray-200 px-4 py-2 text-sm outline-none focus:border-red-500"
                                     />
                                 </div>
                                 <div>
@@ -338,7 +338,7 @@ const AdminVideos = () => {
                                         value={editDescription}
                                         onChange={(e) => setEditDescription(e.target.value)}
                                         rows={3}
-                                        className="w-full rounded-xl border border-gray-200 px-4 py-2 text-sm outline-none focus:border-pink-500"
+                                        className="w-full rounded-xl border border-gray-200 px-4 py-2 text-sm outline-none focus:border-red-500"
                                     />
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -347,7 +347,7 @@ const AdminVideos = () => {
                                         id="isPublished"
                                         checked={editIsPublished}
                                         onChange={(e) => setEditIsPublished(e.target.checked)}
-                                        className="h-4 w-4 rounded border-gray-300 text-pink-600 focus:ring-pink-500"
+                                        className="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
                                     />
                                     <label htmlFor="isPublished" className="text-sm text-gray-700">Published</label>
                                 </div>
@@ -365,7 +365,7 @@ const AdminVideos = () => {
                                     type="button"
                                     onClick={handleSaveEdit}
                                     disabled={isSaving}
-                                    className="px-4 py-2 text-sm rounded-full bg-pink-600 text-white hover:bg-pink-700 disabled:opacity-50 cursor-pointer"
+                                    className="px-4 py-2 text-sm rounded-full bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 cursor-pointer"
                                 >
                                     {isSaving ? "Saving..." : "Save Changes"}
                                 </button>

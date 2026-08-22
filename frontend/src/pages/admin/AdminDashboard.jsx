@@ -5,8 +5,20 @@ import {
     MessageSquare,
     Eye,
     TrendingUp,
-    Link as LinkIcon,
 } from "lucide-react";
+import {
+    ResponsiveContainer,
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    PieChart,
+    Pie,
+    Cell,
+    Legend,
+} from "recharts";
 
 import AdminLayout from "../../components/admin/AdminLayout";
 import useAdminStore from "../../store/adminStore";
@@ -72,18 +84,35 @@ const AdminDashboard = () => {
         },
     ];
 
-    const maxValue = Math.max(
-        overview?.totalUsers || 0,
-        overview?.totalVideos || 0,
-        overview?.totalComments || 0,
-        1
-    );
-
-    const chartData = [
-        { label: "Users", value: overview?.totalUsers || 0, color: "bg-blue-500" },
-        { label: "Videos", value: overview?.totalVideos || 0, color: "bg-green-500" },
-        { label: "Comments", value: overview?.totalComments || 0, color: "bg-purple-500" },
+    // Data for the bar chart (Users / Videos / Comments)
+    const barData = [
+        { name: "Users", value: overview?.totalUsers || 0, fill: "#3b82f6" },
+        { name: "Videos", value: overview?.totalVideos || 0, fill: "#22c55e" },
+        { name: "Comments", value: overview?.totalComments || 0, fill: "#a855f7" },
     ];
+
+    // Data for the pie/donut chart showing platform composition
+    const pieData = [
+        { name: "Users", value: overview?.totalUsers || 0 },
+        { name: "Videos", value: overview?.totalVideos || 0 },
+        { name: "Comments", value: overview?.totalComments || 0 },
+        { name: "Views", value: overview?.totalViews || 0 },
+    ];
+    const PIE_COLORS = ["#3b82f6", "#22c55e", "#a855f7", "#f97316"];
+
+    const CustomTooltip = ({ active, payload, label }) => {
+        if (active && payload && payload.length) {
+            return (
+                <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-md text-sm">
+                    <p className="font-medium text-gray-900">{label ?? payload[0].name}</p>
+                    <p className="text-gray-600">
+                        {payload[0].value.toLocaleString()}
+                    </p>
+                </div>
+            );
+        }
+        return null;
+    };
 
     return (
         <AdminLayout>
@@ -101,7 +130,7 @@ const AdminDashboard = () => {
                     {stats.map((stat) => (
                         <div
                             key={stat.label}
-                            className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md"
+                            className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
                         >
                             <div className="flex items-center gap-4">
                                 <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${stat.color}`}>
@@ -125,50 +154,52 @@ const AdminDashboard = () => {
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                     {/* Bar Chart */}
                     <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                        <h3 className="font-semibold text-gray-900 mb-6">Platform Overview</h3>
-                        <div className="space-y-4">
-                            {chartData.map((item) => (
-                                <div key={item.label}>
-                                    <div className="flex items-center justify-between mb-1">
-                                        <span className="text-sm text-gray-600">{item.label}</span>
-                                        <span className="text-sm font-semibold text-gray-900">{item.value.toLocaleString()}</span>
-                                    </div>
-                                    <div className="h-3 w-full rounded-full bg-gray-100">
-                                        <div
-                                            className={`h-3 rounded-full ${item.color} transition-all duration-500`}
-                                            style={{
-                                                width: `${maxValue > 0 ? (item.value / maxValue) * 100 : 0}%`,
-                                            }}
-                                        />
-                                    </div>
-                                </div>
-                            ))}
+                        <h3 className="font-semibold text-gray-900 mb-4">Platform Overview</h3>
+                        <div className="h-64 w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={barData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                                    <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#6b7280" }} axisLine={false} tickLine={false} />
+                                    <YAxis tick={{ fontSize: 12, fill: "#6b7280" }} axisLine={false} tickLine={false} />
+                                    <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(0,0,0,0.03)" }} />
+                                    <Bar dataKey="value" radius={[8, 8, 0, 0]} maxBarSize={56}>
+                                        {barData.map((entry, index) => (
+                                            <Cell key={`bar-cell-${index}`} fill={entry.fill} className="cursor-pointer" />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
                         </div>
                     </div>
 
-                    {/* Views Card */}
+                    {/* Donut Chart */}
                     <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                        <h3 className="font-semibold text-gray-900 mb-4">Total Views</h3>
-                        <div className="flex items-center gap-4">
-                            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
-                                <Eye size={32} />
-                            </div>
-                            <div>
-                                <p className="text-3xl font-bold text-gray-900">
-                                    {(overview?.totalViews || 0).toLocaleString()}
-                                </p>
-                                <p className="text-sm text-gray-500 mt-1">
-                                    +18.7% from last month
-                                </p>
-                            </div>
-                        </div>
-                        <div className="mt-6 h-3 w-full rounded-full bg-gray-100">
-                            <div
-                                className="h-3 rounded-full bg-orange-500 transition-all duration-500"
-                                style={{
-                                    width: `${Math.min(((overview?.totalViews || 0) / Math.max(overview?.totalViews || 1, 1)) * 100, 100)}%`,
-                                }}
-                            />
+                        <h3 className="font-semibold text-gray-900 mb-4">Platform Composition</h3>
+                        <div className="h-64 w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={pieData}
+                                        dataKey="value"
+                                        nameKey="name"
+                                        innerRadius="55%"
+                                        outerRadius="80%"
+                                        paddingAngle={3}
+                                        className="cursor-pointer"
+                                    >
+                                        {pieData.map((entry, index) => (
+                                            <Cell key={`pie-cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip content={<CustomTooltip />} />
+                                    <Legend
+                                        verticalAlign="bottom"
+                                        height={32}
+                                        iconType="circle"
+                                        wrapperStyle={{ fontSize: 12, color: "#6b7280" }}
+                                    />
+                                </PieChart>
+                            </ResponsiveContainer>
                         </div>
                     </div>
                 </div>
@@ -183,14 +214,17 @@ const AdminDashboard = () => {
                                 View all
                             </Link>
                         </div>
-                        <div className="space-y-3">
+                        <div className="space-y-1">
                             {overview?.recentUsers?.length > 0 ? (
                                 overview.recentUsers.map((user) => (
-                                    <div key={user._id} className="flex items-center gap-3">
+                                    <div
+                                        key={user._id}
+                                        className="flex items-center gap-3 rounded-xl p-2 -mx-2 cursor-pointer transition-colors hover:bg-gray-50"
+                                    >
                                         <img
                                             src={user.avatar}
                                             alt={user.fullName}
-                                            className="h-8 w-8 rounded-full object-cover"
+                                            className="h-8 w-8 rounded-full object-cover ring-2 ring-transparent transition group-hover:ring-red-100"
                                         />
                                         <div className="min-w-0 flex-1">
                                             <p className="truncate text-sm font-medium text-gray-900">{user.fullName}</p>
@@ -212,14 +246,17 @@ const AdminDashboard = () => {
                                 View all
                             </Link>
                         </div>
-                        <div className="space-y-3">
+                        <div className="space-y-1">
                             {overview?.recentVideos?.length > 0 ? (
                                 overview.recentVideos.map((video) => (
-                                    <div key={video._id} className="flex items-center gap-3">
+                                    <div
+                                        key={video._id}
+                                        className="flex items-center gap-3 rounded-xl p-2 -mx-2 cursor-pointer transition-colors hover:bg-gray-50"
+                                    >
                                         <img
                                             src={video.thumbnail}
                                             alt={video.title}
-                                            className="h-10 w-16 rounded-lg object-cover"
+                                            className="h-10 w-16 rounded-lg object-cover transition-transform duration-200 hover:scale-105"
                                         />
                                         <div className="min-w-0 flex-1">
                                             <p className="truncate text-sm font-medium text-gray-900">{video.title}</p>
@@ -241,10 +278,13 @@ const AdminDashboard = () => {
                                 View all
                             </Link>
                         </div>
-                        <div className="space-y-3">
+                        <div className="space-y-1">
                             {overview?.recentComments?.length > 0 ? (
                                 overview.recentComments.map((comment) => (
-                                    <div key={comment._id} className="flex items-start gap-3">
+                                    <div
+                                        key={comment._id}
+                                        className="flex items-start gap-3 rounded-xl p-2 -mx-2 cursor-pointer transition-colors hover:bg-gray-50"
+                                    >
                                         <img
                                             src={comment.owner?.avatar}
                                             alt={comment.owner?.fullName}

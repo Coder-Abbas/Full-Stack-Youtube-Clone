@@ -133,7 +133,7 @@ const Sidebar = ({ isSidebarOpen }) => {
                 ${isSidebarOpen ? "w-50" : "w-15"}
             `}
         >
-            <div className="h-full overflow-y-auto px-3 py-4">
+            <div className="h-full overflow-y-hidden px-3 py-4">
 
                 {/* Home */}
                 <div className="space-y-1">
@@ -149,7 +149,7 @@ const Sidebar = ({ isSidebarOpen }) => {
                 {/* Admin Link */}
                 {authUser && authUser.role === "admin" && (
                     <>
-                        <div className="my-4 border-t border-gray-200" />
+                        <div className="my-2 border-t border-gray-200" />
                         <Link
                             to="/admin"
                             className={`
@@ -167,8 +167,8 @@ const Sidebar = ({ isSidebarOpen }) => {
                                 duration-200
                                 ${
                                     location.pathname.startsWith("/admin")
-                                        ? "bg-red-50 text-red-600 font-semibold"
-                                        : "text-red-600 hover:bg-red-50 hover:text-red-700"
+                                        ? "bg-red-50  font-semibold"
+                                        : " hover:bg-red-50 hover:text-red-700"
                                 }
                             `}
                         >
@@ -192,9 +192,9 @@ const Sidebar = ({ isSidebarOpen }) => {
                 {/* Authenticated User Menu */}
                 {authUser && (
                     <>
-                        <div className="my-4 border-t border-gray-200" />
+                        <div className="my-2 border-t border-gray-200" />
 
-                        <div className="mt-2 space-y-1">
+                        <div className="mt-1 space-y-1">
                             {authenticatedMenuItems
                                 .filter((item) => item.path !== "/")
                                 .map((item) => (
@@ -205,7 +205,7 @@ const Sidebar = ({ isSidebarOpen }) => {
                                 ))}
                         </div>
 
-                        <div className="my-4 border-t border-gray-200" />
+                        <div className="my-2 border-t border-gray-200" />
 
                         <div className="space-y-1">
                             {secondaryMenuItems.map((item) => (

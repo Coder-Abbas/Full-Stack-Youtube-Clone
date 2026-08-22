@@ -1,13 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Shield, Lock, KeyRound } from "lucide-react";
 
 import AdminLayout from "../../components/admin/AdminLayout";
 import useAuthStore from "../../store/authStore";
-import axiosInstance from "../../api/axiosInstance";
 import toast from "react-hot-toast";
 
 const AdminSettings = () => {
-    const { authUser, getMe } = useAuthStore();
+    const { authUser, changePassword } = useAuthStore();
 
     const [oldPassword, setOldPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
@@ -17,10 +16,6 @@ const AdminSettings = () => {
     const [showConfPassword, setShowConfPassword] = useState(false);
     const [isChangingPassword, setIsChangingPassword] = useState(false);
     const [passwordError, setPasswordError] = useState("");
-
-    useEffect(() => {
-        getMe();
-    }, [getMe]);
 
     const handleChangePassword = async (e) => {
         e.preventDefault();
@@ -43,17 +38,15 @@ const AdminSettings = () => {
 
         try {
             setIsChangingPassword(true);
-            await axiosInstance.patch("/users/change-password", {
-                oldPassword,
-                newPassword,
-                confPassword,
-            });
-            toast.success("Password changed successfully!");
-            setOldPassword("");
-            setNewPassword("");
-            setConfPassword("");
-        } catch (error) {
-            setPasswordError(error?.response?.data?.message || "Failed to change password");
+            const result = await changePassword(oldPassword, newPassword, confPassword);
+            if (result.success) {
+                toast.success("Password changed successfully!");
+                setOldPassword("");
+                setNewPassword("");
+                setConfPassword("");
+            } else {
+                setPasswordError(result.message || "Failed to change password");
+            }
         } finally {
             setIsChangingPassword(false);
         }
@@ -71,7 +64,7 @@ const AdminSettings = () => {
                 {/* Admin Profile */}
                 <div className="rounded-2xl border border-gray-200 bg-white p-6">
                     <div className="flex items-center gap-3 mb-6">
-                        <Shield className="text-pink-500" size={20} />
+                        <Shield className="text-red-500" size={20} />
                         <h2 className="text-lg font-bold text-gray-900">Admin Profile</h2>
                     </div>
 
@@ -92,7 +85,7 @@ const AdminSettings = () => {
                 {/* Change Password */}
                 <div className="rounded-2xl border border-gray-200 bg-white p-6">
                     <div className="flex items-center gap-3 mb-6">
-                        <Lock className="text-pink-500" size={20} />
+                        <Lock className="text-red-500" size={20} />
                         <h2 className="text-lg font-bold text-gray-900">Change Password</h2>
                     </div>
 
@@ -105,7 +98,7 @@ const AdminSettings = () => {
                                     value={oldPassword}
                                     onChange={(e) => setOldPassword(e.target.value)}
                                     placeholder="Enter current password"
-                                    className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-pink-500"
+                                    className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-red-500"
                                 />
                                 <button
                                     type="button"
@@ -125,7 +118,7 @@ const AdminSettings = () => {
                                     value={newPassword}
                                     onChange={(e) => setNewPassword(e.target.value)}
                                     placeholder="Enter new password"
-                                    className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-pink-500"
+                                    className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-red-500"
                                 />
                                 <button
                                     type="button"
@@ -145,7 +138,7 @@ const AdminSettings = () => {
                                     value={confPassword}
                                     onChange={(e) => setConfPassword(e.target.value)}
                                     placeholder="Confirm new password"
-                                    className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-pink-500"
+                                    className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-red-500"
                                 />
                                 <button
                                     type="button"
@@ -165,7 +158,7 @@ const AdminSettings = () => {
                             <button
                                 type="submit"
                                 disabled={isChangingPassword}
-                                className="flex items-center gap-2 px-6 py-2.5 bg-pink-600 text-white rounded-full font-medium hover:bg-pink-700 disabled:opacity-50 cursor-pointer"
+                                className="flex items-center gap-2 px-6 py-2.5 bg-red-600 text-white rounded-full font-medium hover:bg-red-700 disabled:opacity-50 cursor-pointer"
                             >
                                 <KeyRound size={16} />
                                 {isChangingPassword ? "Changing..." : "Change Password"}

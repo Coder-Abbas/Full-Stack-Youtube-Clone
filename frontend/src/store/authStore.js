@@ -125,6 +125,35 @@ const useAuthStore = create((set, get) => ({
             set({ authUser: null, accessToken: null, error: null });
         }
     },
+
+    changePassword: async (oldPassword, newPassword, confPassword) => {
+        set({ error: null });
+
+        try {
+            const response = await axiosInstance.patch("/users/change-password", {
+                oldPassword,
+                newPassword,
+                confPassword,
+            });
+
+            return {
+                success: true,
+                data: response?.data?.data || response?.data,
+            };
+        } catch (error) {
+            const message =
+                error?.response?.data?.message ||
+                error?.message ||
+                "Failed to change password";
+
+            set({ error: message });
+
+            return {
+                success: false,
+                message,
+            };
+        }
+    },
   updateAvatar: async (avatarFile) => {
     try {
         const formData = new FormData();
