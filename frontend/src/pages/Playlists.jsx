@@ -9,7 +9,9 @@ import usePlaylistStore from "../store/playlistStore";
 import useAuthStore from "../store/authStore";
 
 const Playlists = () => {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(
+        typeof window !== "undefined" ? window.innerWidth >= 750 : false
+    );
     const navigate = useNavigate();
     const { authUser } = useAuthStore();
 
@@ -55,7 +57,7 @@ const Playlists = () => {
             <aside
                 className={`
                     fixed left-0 top-16 bottom-0 z-40 transition-all duration-300
-                    ${isSidebarOpen ? "w-64" : "w-20"}
+                    ${isSidebarOpen ? "w-50" : "w-20"}
                 `}
             >
                 <Sidebar isSidebarOpen={isSidebarOpen} />
@@ -64,7 +66,7 @@ const Playlists = () => {
             <main
                 className={`
                     absolute top-16 bottom-0 right-0 overflow-y-auto transition-all duration-300
-                    ${isSidebarOpen ? "left-64" : "left-20"}
+                    ${isSidebarOpen ? "left-50" : "left-20"}
                 `}
             >
                 <div className="p-6 max-w-[1400px] mx-auto">

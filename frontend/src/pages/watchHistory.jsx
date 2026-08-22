@@ -64,7 +64,9 @@ const groupByDate = (videos) => {
 };
 
 const WatchHistory = () => {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(
+        typeof window !== "undefined" ? window.innerWidth >= 750 : false
+    );
 
     // ==========================================
     // Auth Store
@@ -87,9 +89,7 @@ const WatchHistory = () => {
     // Sidebar
     // ==========================================
 
-    const toggleSidebar = () => {
-        setIsSidebarOpen((prev) => !prev);
-    };
+    const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
 
     // ==========================================
     // Fetch Watch History
@@ -141,7 +141,7 @@ const WatchHistory = () => {
                         z-40
                         transition-all
                         duration-300
-                        ${isSidebarOpen ? "w-64" : "w-20"}
+                        ${isSidebarOpen ? "w-50" : "w-20"}
                     `}
                 >
                     <Sidebar
@@ -159,7 +159,7 @@ const WatchHistory = () => {
                         overflow-y-auto
                         transition-all
                         duration-300
-                        ${isSidebarOpen ? "left-64" : "left-20"}
+                        ${isSidebarOpen ? "left-50" : "left-20"}
                     `}
                 >
                     <div className="p-6">
@@ -196,7 +196,7 @@ const WatchHistory = () => {
                         z-40
                         transition-all
                         duration-300
-                        ${isSidebarOpen ? "w-64" : "w-20"}
+                        ${isSidebarOpen ? "w-50" : "w-20"}
                     `}
                 >
                     <Sidebar
@@ -214,7 +214,7 @@ const WatchHistory = () => {
                         overflow-y-auto
                         transition-all
                         duration-300
-                        ${isSidebarOpen ? "left-64" : "left-20"}
+                        ${isSidebarOpen ? "left-50" : "left-20"}
                     `}
                 >
                     <div
@@ -292,7 +292,7 @@ const WatchHistory = () => {
                     z-40
                     transition-all
                     duration-300
-                    ${isSidebarOpen ? "w-64" : "w-20"}
+                    ${isSidebarOpen ? "w-50" : "w-20"}
                 `}
             >
                 <Sidebar
@@ -314,7 +314,7 @@ const WatchHistory = () => {
                     overflow-y-auto
                     transition-all
                     duration-300
-                    ${isSidebarOpen ? "left-64" : "left-20"}
+                    ${isSidebarOpen ? "left-50" : "left-20"}
                 `}
             >
                 <div className="p-6">
@@ -456,14 +456,7 @@ const WatchHistory = () => {
                                 </h2>
 
                                 <div
-                                    className="
-                                        grid
-                                        grid-cols-1
-                                        sm:grid-cols-2
-                                        lg:grid-cols-3
-                                        xl:grid-cols-4
-                                        gap-4
-                                    "
+                                    className="video-grid-responsive"
                                 >
                                     {group.videos.map((entry) => (
                                         <HomePageCard

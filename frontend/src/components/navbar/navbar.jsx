@@ -27,7 +27,8 @@ const Navbar = ({ toggleSidebar = () => {} }) => {
     const [menuOpen, setMenuOpen] = useState(false);
     const [isUploadOpen, setIsUploadOpen] = useState(false);
 
-    // Search toggle
+    // Mobile search dropdown state (icon-only in header on mobile,
+    // expands into a dropdown below the header when clicked)
     const [searchOpen, setSearchOpen] = useState(false);
     const [searchText, setSearchText] = useState("");
 
@@ -48,24 +49,22 @@ const Navbar = ({ toggleSidebar = () => {} }) => {
                 setMenuOpen(false);
             }
 
-            const isDesktopSearch = desktopSearchRef.current && desktopSearchRef.current.contains(event.target);
-            const isMobileSearch = mobileSearchRef.current && mobileSearchRef.current.contains(event.target);
+            const isDesktopSearch =
+                desktopSearchRef.current &&
+                desktopSearchRef.current.contains(event.target);
+            const isMobileSearch =
+                mobileSearchRef.current &&
+                mobileSearchRef.current.contains(event.target);
 
             if (!isDesktopSearch && !isMobileSearch) {
                 setSearchOpen(false);
             }
         };
 
-        document.addEventListener(
-            "mousedown",
-            handleClickOutside
-        );
+        document.addEventListener("mousedown", handleClickOutside);
 
         return () =>
-            document.removeEventListener(
-                "mousedown",
-                handleClickOutside
-            );
+            document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
     const handleLogout = async () => {
@@ -87,9 +86,7 @@ const Navbar = ({ toggleSidebar = () => {} }) => {
 
         await search(query);
 
-        navigate(
-            `/search?q=${encodeURIComponent(query)}`
-        );
+        navigate(`/search?q=${encodeURIComponent(query)}`);
 
         setSearchOpen(false);
         setSearchText("");
@@ -105,10 +102,7 @@ const Navbar = ({ toggleSidebar = () => {} }) => {
                         className="rounded-full p-2 transition cursor-pointer hover:bg-gray-100"
                         aria-label="Toggle sidebar"
                     >
-                        <Menu
-                            size={24}
-                            className="text-gray-700"
-                        />
+                        <Menu size={24} className="text-gray-700" />
                     </button>
 
                     <img
@@ -120,89 +114,84 @@ const Navbar = ({ toggleSidebar = () => {} }) => {
                 </div>
 
                 {/* ==============================
-                    SEARCH TOGGLE
+                    DESKTOP SEARCH (>= 750px)
+                    Integrated into the header row, aligned with the
+                    logo and menu. Visible + expanded by default.
                 ============================== */}
 
                 <div
                     ref={desktopSearchRef}
-                    className="hidden flex-1 max-w-2xl mx-4 md:flex"
+                    className="hidden min-[750px]:flex flex-1 justify-center mx-4"
                 >
-                    {!searchOpen ? (
-                        <button
-                            onClick={() => setSearchOpen(true)}
+                    <form
+                        onSubmit={handleSearch}
+                        className="flex w-full max-w-2xl items-stretch"
+                    >
+                        <input
+                            type="text"
+                            placeholder="Search..."
+                            value={searchText}
+                            onChange={(e) => setSearchText(e.target.value)}
                             className="
-                                p-2.5
-                                rounded-full
-                                hover:bg-gray-200
+                                w-full
+                                rounded-l-full
+                                border
+                                border-gray-300
+                                px-4
+                                py-2
+                                outline-none
+                                focus:border-gray-500
                                 transition
-                                text-gray-700
                             "
-                            title="Search"
-                        >
-                            <Search size={21} />
-                        </button>
-                    ) : (
-                        <form
-                            onSubmit={handleSearch}
-                            className="w-full"
-                        >
-                            <div className="search-dropdown open flex w-full">
-                                <input
-                                    type="text"
-                                    placeholder="Search..."
-                                    value={searchText}
-                                    onChange={(e) =>
-                                        setSearchText(e.target.value)
-                                    }
-                                    className="
-                                        w-full
-                                        rounded-l-full
-                                        border
-                                        border-gray-300
-                                        px-4
-                                        py-2
-                                        outline-none
-                                        focus:border-gray-500
-                                        transition
-                                    "
-                                />
+                        />
 
-                                <button
-                                    type="submit"
-                                    className="
-                                        cursor-pointer
-                                        rounded-r-full
-                                        border
-                                        border-l-0
-                                        border-gray-300
-                                        bg-gray-100
-                                        px-5
-                                        py-2
-                                        transition
-                                        hover:bg-gray-200
-                                    "
-                                    aria-label="Search"
-                                >
-                                    <Search
-                                        size={20}
-                                        className="text-gray-700"
-                                    />
-                                </button>
-                            </div>
-                        </form>
-                    )}
+                        <button
+                            type="submit"
+                            className="
+                                cursor-pointer
+                                rounded-r-full
+                                border
+                                border-l-0
+                                border-gray-300
+                                bg-gray-100
+                                px-5
+                                py-2
+                                transition
+                                hover:bg-gray-200
+                            "
+                            aria-label="Search"
+                        >
+                            <Search size={20} className="text-gray-700" />
+                        </button>
+                    </form>
                 </div>
 
                 <div className="flex items-center gap-3">
+                    {/* Mobile search icon — lives in the header row,
+                        collapses to a dropdown below the header when tapped */}
+                    <button
+                        type="button"
+                        onClick={() => setSearchOpen(true)}
+                        className="
+                            p-2.5
+                            rounded-full
+                            hover:bg-gray-200
+                            transition
+                            text-gray-700
+                            min-[750px]:hidden
+                        "
+                        aria-label="Open search"
+                    >
+                        <Search size={21} />
+                    </button>
+
                     {authUser ? (
                         <>
                             {/* Upload Video Button */}
 
                             <button
                                 type="button"
-                                onClick={() =>
-                                    setIsUploadOpen(true)
-                                }
+                                onClick={() => setIsUploadOpen(true)}
                                 className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 transition cursor-pointer"
                             >
                                 <Upload size={18} />
@@ -212,25 +201,18 @@ const Navbar = ({ toggleSidebar = () => {} }) => {
                                 </span>
                             </button>
 
-                            <div
-                                className="relative"
-                                ref={menuRef}
-                            >
+                            <div className="relative" ref={menuRef}>
                                 <button
                                     type="button"
                                     onClick={() =>
-                                        setMenuOpen(
-                                            (prev) => !prev
-                                        )
+                                        setMenuOpen((prev) => !prev)
                                     }
                                     className="flex h-10 w-10 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-gray-200 bg-gray-100 transition hover:bg-gray-200"
                                     aria-label="Open user menu"
                                 >
                                     {authUser.avatar ? (
                                         <img
-                                            src={
-                                                authUser.avatar
-                                            }
+                                            src={authUser.avatar}
                                             alt={
                                                 authUser.fullName ||
                                                 authUser.username ||
@@ -251,30 +233,22 @@ const Navbar = ({ toggleSidebar = () => {} }) => {
                                         <Link
                                             type="button"
                                             onClick={() => {
-                                                setMenuOpen(
-                                                    false
-                                                );
+                                                setMenuOpen(false);
                                             }}
                                             to="/profile"
                                             className="flex w-full cursor-pointer items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 transition hover:bg-gray-100"
                                         >
-                                            <UserCircle
-                                                size={16}
-                                            />
+                                            <UserCircle size={16} />
 
                                             Profile
                                         </Link>
 
                                         <button
                                             type="button"
-                                            onClick={
-                                                handleLogout
-                                            }
+                                            onClick={handleLogout}
                                             className="flex cursor-pointer w-full items-center gap-2 px-4 py-2 text-left text-sm text-red-600 transition hover:bg-red-50"
                                         >
-                                            <LogOut
-                                                size={16}
-                                            />
+                                            <LogOut size={16} />
 
                                             Logout
                                         </button>
@@ -295,33 +269,18 @@ const Navbar = ({ toggleSidebar = () => {} }) => {
             </div>
 
             {/* ==============================
-                MOBILE SEARCH TOGGLE
+                MOBILE SEARCH DROPDOWN (< 750px)
+                Hidden by default; the header icon above toggles
+                this full-width input that drops below the header.
             ============================== */}
 
-            <div
-                ref={mobileSearchRef}
-                className="mt-3 flex md:hidden"
-            >
-                {!searchOpen ? (
-                    <button
-                        onClick={() => setSearchOpen(true)}
-                        className="
-                            p-2.5
-                            rounded-full
-                            hover:bg-gray-200
-                            transition
-                            text-gray-700
-                        "
-                        title="Search"
-                    >
-                        <Search size={21} />
-                    </button>
-                ) : (
-                    <form
-                        onSubmit={handleSearch}
-                        className="w-full"
-                    >
-                        <div className="search-dropdown open flex w-full">
+            {searchOpen && (
+                <div
+                    ref={mobileSearchRef}
+                    className="mobile-search-dropdown mt-3 flex min-[750px]:hidden"
+                >
+                    <form onSubmit={handleSearch} className="w-full">
+                        <div className="flex w-full items-stretch">
                             <input
                                 type="text"
                                 placeholder="Search..."
@@ -329,6 +288,7 @@ const Navbar = ({ toggleSidebar = () => {} }) => {
                                 onChange={(e) =>
                                     setSearchText(e.target.value)
                                 }
+                                autoFocus
                                 className="
                                     w-full
                                     rounded-l-full
@@ -357,24 +317,17 @@ const Navbar = ({ toggleSidebar = () => {} }) => {
                                     hover:bg-gray-200
                                 "
                             >
-                                <Search
-                                    size={20}
-                                    className="text-gray-700"
-                                />
+                                <Search size={20} className="text-gray-700" />
                             </button>
                         </div>
                     </form>
-                )}
-            </div>
+                </div>
+            )}
 
             {/* Upload Video Modal */}
 
             {isUploadOpen && (
-                <UploadVideoModal
-                    onClose={() =>
-                        setIsUploadOpen(false)
-                    }
-                />
+                <UploadVideoModal onClose={() => setIsUploadOpen(false)} />
             )}
         </nav>
     );

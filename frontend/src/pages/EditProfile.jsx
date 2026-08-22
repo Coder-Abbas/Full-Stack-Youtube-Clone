@@ -7,7 +7,9 @@ import Sidebar from "../components/sidebar";
 import useChannelStore from "../store/channelStore";
 
 const EditProfile = () => {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(
+        typeof window !== "undefined" ? window.innerWidth >= 750 : false
+    );
 
     const {
         channel,
@@ -108,12 +110,12 @@ const EditProfile = () => {
             </header>
 
             {/* Sidebar */}
-            <aside className={`fixed left-0 top-16 bottom-0 z-40 transition-all duration-300 ${isSidebarOpen ? "w-64" : "w-20"}`}>
+            <aside className={`fixed left-0 top-16 bottom-0 z-40 transition-all duration-300 ${isSidebarOpen ? "w-50" : "w-20"}`}>
                 <Sidebar isSidebarOpen={isSidebarOpen} />
             </aside>
 
             {/* Main Content */}
-            <main className={`pt-16 overflow-y-auto transition-all duration-300 ${isSidebarOpen ? "pl-64" : "pl-20"}`}>
+            <main className={`pt-16 overflow-y-auto transition-all duration-300 ${isSidebarOpen ? "pl-50" : "pl-20"}`}>
                 <div className="max-w-2xl mx-auto px-4 py-8">
                     <div className="flex items-center gap-4 mb-8">
                         <Link to="/profile" className="p-2 rounded-full hover:bg-gray-100">

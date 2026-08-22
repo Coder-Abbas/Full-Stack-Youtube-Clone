@@ -905,7 +905,10 @@ const SelectVideo = () => {
 
                                                         <button
                                                             type="button"
-                                                            onClick={() => handleCommentLikeClick(commentItem)}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleCommentLikeClick(commentItem);
+                                                            }}
                                                             className={`
                                                                 flex
                                                                 items-center

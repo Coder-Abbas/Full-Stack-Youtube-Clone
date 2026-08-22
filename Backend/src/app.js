@@ -48,6 +48,7 @@ import commentRoutes from "./routes/comment.routes.js";
 import searchRouter from "./routes/search.routes.js";
 import playlistRouter from "./routes/playlist.routes.js";
 import realtimeRouter from "./routes/realtime.routes.js";
+import dashboardRouter from "./routes/dashboard.routes.js";
 
 
 
@@ -69,6 +70,10 @@ app.use(
 app.use(
     "/api/v1/events",
     realtimeRouter
+);
+app.use(
+    "/api/v1/dashboard",
+    dashboardRouter
 );
 
 

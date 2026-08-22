@@ -20,11 +20,11 @@ const SearchPage = () => {
     // Sidebar
     // ==========================================
 
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(
+        typeof window !== "undefined" ? window.innerWidth >= 750 : false
+    );
 
-    const toggleSidebar = () => {
-        setIsSidebarOpen((prev) => !prev);
-    };
+    const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
 
     // ==========================================
     // Search
@@ -167,7 +167,7 @@ const SearchPage = () => {
 
                     ${
                         isSidebarOpen
-                            ? "w-64"
+                            ? "w-50"
                             : "w-20"
                     }
                 `}
@@ -193,7 +193,7 @@ const SearchPage = () => {
 
                     ${
                         isSidebarOpen
-                            ? "left-64"
+                            ? "left-50"
                             : "left-20"
                     }
                 `}
@@ -473,15 +473,7 @@ const VideoResults = ({ videos }) => {
 
     return (
         <div
-            className="
-                grid
-                grid-cols-1
-                sm:grid-cols-2
-                lg:grid-cols-3
-                xl:grid-cols-3
-                gap-x-0
-                gap-y-2
-            "
+            className="video-grid-responsive"
         >
             {videos.map((video) => (
                 <HomePageCard

@@ -142,7 +142,7 @@ const Sidebar = ({ isSidebarOpen }) => {
                 transition-all
                 duration-300
                 ease-in-out
-                ${isSidebarOpen ? "w-52" : "w-20"}
+                ${isSidebarOpen ? "w-50" : "w-20"}
             `}
         >
             <div className="h-full overflow-y-auto px-3 py-4">

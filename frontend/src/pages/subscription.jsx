@@ -38,7 +38,9 @@ const ChannelSkeleton = () => (
 );
 
 const Subscription = () => {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(
+        typeof window !== "undefined" ? window.innerWidth >= 750 : false
+    );
 
     // ==========================================
     // Auth Store
@@ -62,9 +64,7 @@ const Subscription = () => {
     // Sidebar
     // ==========================================
 
-    const toggleSidebar = () => {
-        setIsSidebarOpen((prev) => !prev);
-    };
+    const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
 
     // ==========================================
     // Fetch Subscribed Channels
@@ -117,7 +117,7 @@ const Subscription = () => {
                         z-40
                         transition-all
                         duration-300
-                        ${isSidebarOpen ? "w-54" : "w-20"}
+                        ${isSidebarOpen ? "w-50" : "w-20"}
                     `}
                 >
                     <Sidebar isSidebarOpen={isSidebarOpen} />
@@ -132,7 +132,7 @@ const Subscription = () => {
                         overflow-y-auto
                         transition-all
                         duration-300
-                        ${isSidebarOpen ? "left-54" : "left-20"}
+                        ${isSidebarOpen ? "left-50" : "left-20"}
                     `}
                 >
                     <div className="flex flex-col items-center justify-center h-full">
@@ -186,7 +186,7 @@ const Subscription = () => {
                     z-40
                     transition-all
                     duration-300
-                    ${isSidebarOpen ? "w-54" : "w-20"}
+                    ${isSidebarOpen ? "w-50" : "w-20"}
                 `}
             >
                 <Sidebar isSidebarOpen={isSidebarOpen} />
@@ -201,7 +201,7 @@ const Subscription = () => {
                     overflow-y-auto
                     transition-all
                     duration-300
-                    ${isSidebarOpen ? "left-54" : "left-20"}
+                    ${isSidebarOpen ? "left-50" : "left-20"}
                 `}
             >
                 <div className="p-6">
@@ -333,15 +333,7 @@ const Subscription = () => {
                                 ) : (
                                     <div className="mt-10">
                                         <div
-                                            className="
-                                                grid
-                                                grid-cols-1
-                                                sm:grid-cols-2
-                                                lg:grid-cols-3
-                                                xl:grid-cols-3
-                                                gap-x-0
-                                                gap-y-2
-                                            "
+                                            className="video-grid-responsive"
                                         >
                                             {videoList.map((video) => (
                                                 <HomePageCard

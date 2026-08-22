@@ -18,13 +18,17 @@ import ProfileVideoCard from "../components/videoCards/myProfileCard";
 import ProfileSkeleton from "../components/ProfileSkeleton";
 import useChannelStore from "../store/channelStore";
 import useAuthStore from "../store/authStore";
+import useVideoStore from "../store/videoStore";
+import LoadingCards from "../components/loadingCards";
 
 
 
 
 
 const Profile = () => {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(
+        typeof window !== "undefined" ? window.innerWidth >= 750 : false
+    );
     const [activeTab, setActiveTab] = useState("videos");
     const [searchOpen, setSearchOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
@@ -57,9 +61,13 @@ const Profile = () => {
         updateAvatar,
     } = useChannelStore();
 
-    const toggleSidebar = () => {
-        setIsSidebarOpen((prev) => !prev);
-    };
+    const {
+        likedVideos,
+        isLikedVideosLoading,
+        getLikedVideos,
+    } = useVideoStore();
+
+    const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
 
     useEffect(() => {
         // Only fetch channel data if user is logged in.
@@ -71,6 +79,12 @@ const Profile = () => {
         getMyChannel();
         getMyVideos();
     }, [authUser?._id, isCheckingAuth, channelUpdatedVersion, getMyChannel, getMyVideos]);
+
+    // Liked videos (loaded dynamically, inline in the profile)
+    useEffect(() => {
+        if (!authUser || isCheckingAuth) return;
+        getLikedVideos();
+    }, [authUser?._id, isCheckingAuth, getLikedVideos]);
 
     // Search videos
     const filteredVideos = useMemo(() => {
@@ -92,14 +106,14 @@ const Profile = () => {
                 </header>
 
                 <aside
-                    className={`fixed left-0 top-16 bottom-0 z-40 transition-all duration-300 ${isSidebarOpen ? "w-64" : "w-20"
+                    className={`fixed left-0 top-16 bottom-0 z-40 transition-all duration-300 ${isSidebarOpen ? "w-50" : "w-20"
                         }`}
                 >
                     <Sidebar isSidebarOpen={isSidebarOpen} />
                 </aside>
 
                 <main
-                    className={`pt-16 transition-all duration-300 ${isSidebarOpen ? "pl-64" : "pl-20"
+                    className={`pt-16 transition-all duration-300 ${isSidebarOpen ? "pl-50" : "pl-20"
                         }`}
                 >
                     <ProfileSkeleton />
@@ -127,7 +141,7 @@ const Profile = () => {
                     z-40
                     transition-all
                     duration-300
-                    ${isSidebarOpen ? "w-64" : "w-20"}
+                    ${isSidebarOpen ? "w-50" : "w-20"}
                 `}
                 >
                     <Sidebar isSidebarOpen={isSidebarOpen} />
@@ -142,7 +156,7 @@ const Profile = () => {
                     overflow-y-auto
                     transition-all
                     duration-300
-                    ${isSidebarOpen ? "left-64" : "left-20"}
+                    ${isSidebarOpen ? "left-50" : "left-20"}
                 `}
                 >
                     <div className="flex flex-col items-center justify-center h-full">
@@ -294,7 +308,7 @@ const Profile = () => {
 
             {/* ================= SIDEBAR ================= */}
             <aside
-                className={`fixed left-0 top-16 bottom-0 z-40 transition-all duration-300 ${isSidebarOpen ? "w-64" : "w-20"
+                className={`fixed left-0 top-16 bottom-0 z-40 transition-all duration-300 ${isSidebarOpen ? "w-50" : "w-20"
                     }`}
             >
                 <Sidebar isSidebarOpen={isSidebarOpen} />
@@ -302,7 +316,7 @@ const Profile = () => {
 
             {/* ================= MAIN ================= */}
             <main
-                className={`pt-16 h-screen transition-all duration-300 ${isSidebarOpen ? "pl-64" : "pl-20"
+                className={`pt-16 h-screen transition-all duration-300 ${isSidebarOpen ? "pl-50" : "pl-20"
                     }`}
             >
                 <div className="h-full max-w-7xl mx-auto flex flex-col">
@@ -529,23 +543,30 @@ const Profile = () => {
                                 </button>
 
                                 {/* Liked Videos */}
-                                <Link
-                                    to="/liked-videos"
-                                    className="
-                                        flex
-                                        items-center
-                                        gap-2
+                                <button
+                                    onClick={() => setActiveTab("liked")}
+                                    className={`
+                                        relative
                                         py-4
+                                        cursor-pointer
                                         font-medium
-                                        text-gray-500
-                                        hover:text-gray-900
                                         whitespace-nowrap
                                         transition
-                                    "
+                                        ${activeTab === "liked"
+                                            ? "text-black"
+                                            : "text-gray-500 hover:text-gray-900"
+                                        }
+                                    `}
                                 >
-                                    <Heart size={18} />
-                                    Liked Videos
-                                </Link>
+                                    <span className="flex items-center gap-2">
+                                        <Heart size={18} />
+                                        Liked Videos
+                                    </span>
+
+                                    {activeTab === "liked" && (
+                                        <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-black rounded-full" />
+                                    )}
+                                </button>
                             </div>
 
                             {/* Search */}
@@ -660,14 +681,7 @@ const Profile = () => {
                                             </p>
                                         </div>
                                     ) : (
-                                        <div className="
-                                            grid
-                                            grid-cols-1
-                                            sm:grid-cols-2
-                                            lg:grid-cols-3
-                                            xl:grid-cols-3
-                                            gap-2
-                                        ">
+                                        <div className="video-grid-responsive">
                                             {filteredVideos.map((video) => (
                                                 <ProfileVideoCard
                                                     key={video._id}
@@ -712,6 +726,40 @@ const Profile = () => {
                                     <p className="text-gray-500 mt-2">
                                         Your posts will appear here.
                                     </p>
+                                </div>
+                            )}
+
+                            {/* ================= LIKED VIDEOS ================= */}
+                            {activeTab === "liked" && (
+                                <div className="pt-6">
+                                    {isLikedVideosLoading ? (
+                                        <LoadingCards count={8} />
+                                    ) : (likedVideos || []).length === 0 ? (
+                                        <div className="rounded-2xl py-10 text-center">
+                                            <Heart
+                                                size={56}
+                                                className="mx-auto text-gray-300 mb-4"
+                                            />
+
+                                            <h3 className="font-semibold text-xl text-gray-800">
+                                                No liked videos
+                                            </h3>
+
+                                            <p className="text-gray-500 mt-2">
+                                                Videos you like will appear here.
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <div className="video-grid-responsive">
+                                            {(likedVideos || []).map((video) => (
+                                                <ProfileVideoCard
+                                                    key={video._id}
+                                                    video={video}
+                                                    onUpdate={getLikedVideos}
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             )}
 

@@ -22,7 +22,9 @@ const formatDuration = (seconds = 0) => {
 };
 
 const PlaylistDetail = () => {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(
+        typeof window !== "undefined" ? window.innerWidth >= 750 : false
+    );
     const { playlistId } = useParams();
     const navigate = useNavigate();
     const { authUser } = useAuthStore();
@@ -93,7 +95,7 @@ const PlaylistDetail = () => {
             <aside
                 className={`
                     fixed left-0 top-16 bottom-0 z-40 transition-all duration-300
-                    ${isSidebarOpen ? "w-64" : "w-20"}
+                    ${isSidebarOpen ? "w-50" : "w-20"}
                 `}
             >
                 <Sidebar isSidebarOpen={isSidebarOpen} />
@@ -102,7 +104,7 @@ const PlaylistDetail = () => {
             <main
                 className={`
                     absolute top-16 bottom-0 right-0 overflow-y-auto transition-all duration-300
-                    ${isSidebarOpen ? "left-64" : "left-20"}
+                    ${isSidebarOpen ? "left-50" : "left-20"}
                 `}
             >
                 <div className="max-w-[1500px] mx-auto px-3 py-4 sm:px-4 sm:py-6">

@@ -11,7 +11,9 @@ import useVideoStore from "../store/videoStore";
 import useAuthStore from "../store/authStore";
 
 const AllSubscriptions = () => {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(
+        typeof window !== "undefined" ? window.innerWidth >= 750 : false
+    );
     const navigate = useNavigate();
 
     // ==========================================
@@ -37,9 +39,7 @@ const AllSubscriptions = () => {
     // Sidebar
     // ==========================================
 
-    const toggleSidebar = () => {
-        setIsSidebarOpen((prev) => !prev);
-    };
+    const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
 
     // ==========================================
     // Fetch Subscribed Channels
@@ -85,7 +85,7 @@ const AllSubscriptions = () => {
                         z-40
                         transition-all
                         duration-300
-                        ${isSidebarOpen ? "w-64" : "w-20"}
+                        ${isSidebarOpen ? "w-50" : "w-20"}
                     `}
                 >
                     <Sidebar isSidebarOpen={isSidebarOpen} />
@@ -100,7 +100,7 @@ const AllSubscriptions = () => {
                         overflow-y-auto
                         transition-all
                         duration-300
-                        ${isSidebarOpen ? "left-64" : "left-20"}
+                        ${isSidebarOpen ? "left-50" : "left-20"}
                     `}
                 >
                     <div className="flex flex-col items-center justify-center h-full">
@@ -153,7 +153,7 @@ const AllSubscriptions = () => {
                     z-40
                     transition-all
                     duration-300
-                    ${isSidebarOpen ? "w-64" : "w-20"}
+                    ${isSidebarOpen ? "w-50" : "w-20"}
                 `}
             >
                 <Sidebar isSidebarOpen={isSidebarOpen} />
@@ -168,7 +168,7 @@ const AllSubscriptions = () => {
                     overflow-y-auto
                     transition-all
                     duration-300
-                    ${isSidebarOpen ? "left-64" : "left-20"}
+                    ${isSidebarOpen ? "left-50" : "left-20"}
                 `}
             >
                 <div className="p-6">
