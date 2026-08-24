@@ -186,7 +186,8 @@ const Setting = () => {
         }
 
         // Relative URL
-        return `http://localhost:3000/${avatar.replace(/^\/+/, "")}`;
+        const apiBase = (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE_URL) || "http://localhost:3000";
+        return `${apiBase}/${avatar.replace(/^\/+/, "")}`;
     };
 
 

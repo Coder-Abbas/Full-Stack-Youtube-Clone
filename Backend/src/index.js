@@ -7,18 +7,30 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
+const PORT = process.env.PORT || 3000;
+
 connectDB()
     .then(() => {
-        app.listen(process.env.PORT || 3000, () => {
-            
+        const server = app.listen(PORT, () => {
+            console.log(`Server is running on port ${PORT} in ${process.env.NODE_ENV || "development"} mode`);
         });
 
-        app.on("error", (err) => {
-            
-            throw err;
+        // Graceful shutdown
+        process.on("SIGTERM", () => {
+            console.log("SIGTERM received, shutting down gracefully");
+            server.close(() => {
+                console.log("Process terminated");
+            });
+        });
+
+        process.on("SIGINT", () => {
+            console.log("SIGINT received, shutting down gracefully");
+            server.close(() => {
+                console.log("Process terminated");
+            });
         });
     })
     .catch((err) => {
-        
-        throw err;
+        console.error("Failed to connect to database:", err);
+        process.exit(1);
     });

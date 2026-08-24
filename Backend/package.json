@@ -1,36 +1,38 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "a backend project",
-  "keywords": [
-    "backend",
-    "javascript"
-  ],
-  "license": "ISC",
-  "author": "Muhammad Abbas",
-  "type": "module",
+  "description": "YouTube-like social media backend",
   "main": "src/index.js",
+  "type": "module",
   "scripts": {
     "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js",
     "start": "node -r dotenv/config --experimental-json-modules src/index.js",
+    "build": "echo 'No build step for backend'",
     "format": "prettier --write ."
   },
-  "devDependencies": {
-    "nodemon": "^3.1.14",
-    "prettier": "^3.9.6"
-  },
+  "keywords": [
+    "backend",
+    "mern",
+    "youtube"
+  ],
+  "author": "Muhammad Abbas",
+  "license": "ISC",
   "dependencies": {
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.10.0",
+    "compression": "^1.7.4",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "helmet": "^8.0.0",
-    "compression": "^1.7.4",
     "express-rate-limit": "^7.1.5",
+    "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.9.2",
     "multer": "^2.2.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14",
+    "prettier": "^3.9.6"
   }
 }

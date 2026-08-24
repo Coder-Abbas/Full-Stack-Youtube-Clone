@@ -10,9 +10,18 @@ const emitToast = (message) => {
     );
 };
 
+const getBaseURL = () => {
+    if (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE_URL) {
+        return import.meta.env.VITE_API_BASE_URL;
+    }
+    if (typeof process !== "undefined" && process.env?.VITE_API_BASE_URL) {
+        return process.env.VITE_API_BASE_URL;
+    }
+    return "http://localhost:8000/api/v1";
+};
 
 const axiosInstance = axios.create({
-    baseURL: "http://localhost:8000/api/v1",
+    baseURL: getBaseURL(),
     withCredentials: true,
 });
 
