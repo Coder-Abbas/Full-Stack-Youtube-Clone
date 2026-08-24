@@ -1,0 +1,38 @@
+# Render deployment config — Web Service (full-stack app).
+# The Express backend builds the frontend and serves BOTH the API and the
+# React UI from one port (PORT env). This must be a Web Service, NOT a
+# Static Site, so we don't hit the "Publish directory ... does not exist"
+# error that comes from Render treating it as a static site.
+
+services:
+  - type: web
+    name: social-media-backend
+    runtime: node
+    plan: free
+    rootDir: ./
+    buildCommand: npm run build
+    startCommand: npm run start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "8000"
+      - key: FRONTEND_URL
+        value: https://social-media-backend.onrender.com
+      - key: ACCESS_TOKEN_SECRET
+        sync: false
+      - key: ACCESS_TOKEN_EXPIRE
+        value: 2d
+      - key: REFRESH_TOKEN_SECRET
+        sync: false
+      - key: REFRESH_TOKEN_EXPIRE
+        value: 7d
+      - key: MONGODB_URL
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
