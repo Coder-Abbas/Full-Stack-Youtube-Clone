@@ -51,7 +51,7 @@ const App = () => {
   // Real-time updates (Server-Sent Events)
   // ==========================================
   useEffect(() => {
-    const base = axiosInstance.defaults.baseURL || "http://localhost:8000/api/v1";
+    const base = axiosInstance.defaults.baseURL || `${window.location.origin}/api/v1`;
     const es = new EventSource(`${base}/events`);
 
     const onVideoPublished = () => {

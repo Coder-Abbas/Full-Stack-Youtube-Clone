@@ -17,6 +17,13 @@ const getBaseURL = () => {
     if (typeof process !== "undefined" && process.env?.VITE_API_BASE_URL) {
         return process.env.VITE_API_BASE_URL;
     }
+    // Fall back to the same origin the frontend is served from.
+    // In production the Express backend serves both the UI and /api on one domain,
+    // and in dev Vite proxies /api to the local backend. So using window.location
+    // avoids the hardcoded "http://localhost:8000" that breaks on deployed hosts.
+    if (typeof window !== "undefined" && window.location?.origin) {
+        return `${window.location.origin}/api/v1`;
+    }
     return "http://localhost:8000/api/v1";
 };
 
