@@ -140,14 +140,14 @@ const WatchHistory = () => {
                         left-0
                         top-16
                         bottom-0
-                        z-40
+                        z-40 max-[750px]:z-[9999]!
                         transition-all
                         duration-300
                         ${isSidebarOpen ? "w-50" : "w-14 sm:w-20"}
                     `}
                 >
                     <Sidebar
-                        isSidebarOpen={isSidebarOpen}
+                        isSidebarOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)}
                     />
                 </aside>
 
@@ -161,7 +161,7 @@ const WatchHistory = () => {
                         overflow-y-auto
                         transition-all
                         duration-300
-                        ${isSidebarOpen ? "left-50" : "left-14 sm:left-20"}
+                        left-14 sm:left-20 ${isSidebarOpen ? "min-[750px]:left-50!" : ""}
                     `}
                 >
                     <div className="p-6">
@@ -195,14 +195,14 @@ const WatchHistory = () => {
                         left-0
                         top-16
                         bottom-0
-                        z-40
+                        z-40 max-[750px]:z-[9999]!
                         transition-all
                         duration-300
                         ${isSidebarOpen ? "w-50" : "w-14 sm:w-20"}
                     `}
                 >
                     <Sidebar
-                        isSidebarOpen={isSidebarOpen}
+                        isSidebarOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)}
                     />
                 </aside>
 
@@ -216,7 +216,7 @@ const WatchHistory = () => {
                         overflow-y-auto
                         transition-all
                         duration-300
-                        ${isSidebarOpen ? "left-50" : "left-14 sm:left-20"}
+                        left-14 sm:left-20 ${isSidebarOpen ? "min-[750px]:left-50!" : ""}
                     `}
                 >
                     <div
@@ -291,14 +291,14 @@ const WatchHistory = () => {
                     left-0
                     top-16
                     bottom-0
-                    z-40
+                    z-40 max-[750px]:z-[9999]!
                     transition-all
                     duration-300
                     ${isSidebarOpen ? "w-50" : "w-14 sm:w-20"}
                 `}
             >
                 <Sidebar
-                    isSidebarOpen={isSidebarOpen}
+                    isSidebarOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)}
                 />
             </aside>
 
@@ -316,7 +316,7 @@ const WatchHistory = () => {
                     overflow-y-auto
                     transition-all
                     duration-300
-                    ${isSidebarOpen ? "left-50" : "left-14 sm:left-20"}
+                    left-14 sm:left-20 ${isSidebarOpen ? "min-[750px]:left-50!" : ""}
                 `}
             >
                 <div className="p-6">

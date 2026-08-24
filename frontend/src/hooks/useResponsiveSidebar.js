@@ -55,13 +55,25 @@ export const useResponsiveSidebar = (initialOpen) => {
     setIsSidebarOpen((prev) => !prev);
   }, []);
 
+  // Force-close (used by the mobile backdrop / outside-click).
+  const closeSidebar = useCallback(() => {
+    setIsSidebarOpen(false);
+  }, []);
+
   const getSidebarWidthClass = useCallback(
     (isOpen) => (isOpen ? "w-50" : "w-14 sm:w-20"),
     []
   );
 
+  // Overlay mode: on tablet/mobile (<750px) the main content does NOT shift —
+  // the sidebar floats above it at a high z-index. On laptop/desktop (>=750px)
+  // the original push layout is restored via an important utility so it wins
+  // over the base rail offset.
   const getMainLeftClass = useCallback(
-    (isOpen) => (isOpen ? "left-50" : "left-14 sm:left-20"),
+    (isOpen) =>
+      isOpen
+        ? "left-14 sm:left-20 min-[750px]:left-50!"
+        : "left-14 sm:left-20",
     []
   );
 
@@ -87,6 +99,7 @@ export const useResponsiveSidebar = (initialOpen) => {
     isSidebarOpen,
     setIsSidebarOpen,
     toggleSidebar,
+    closeSidebar,
     ...viewport,
     getSidebarWidthClass,
     getMainLeftClass,

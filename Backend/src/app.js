@@ -10,15 +10,44 @@ const _dirname = path.resolve();
 const app = express();
 
 // Security headers
-app.use(helmet());
+// NOTE: Helmet's default Content-Security-Policy only allows 'self' for
+// images/media, which silently blocks ALL Cloudinary thumbnails and videos
+// in the browser. Allow Cloudinary explicitly for img/media.
+app.use(
+    helmet({
+        contentSecurityPolicy: {
+            directives: {
+                defaultSrc: ["'self'"],
+                baseUri: ["'self'"],
+                fontSrc: ["'self'", "https:", "data:"],
+                formAction: ["'self'"],
+                frameAncestors: ["'self'"],
+                imgSrc: ["'self'", "data:", "https://res.cloudinary.com"],
+                mediaSrc: ["'self'", "https://res.cloudinary.com"],
+                objectSrc: ["'none'"],
+                scriptSrc: ["'self'"],
+                scriptSrcAttr: ["'none'"],
+                styleSrc: ["'self'", "https:", "'unsafe-inline'"],
+                connectSrc: ["'self'"],
+            },
+        },
+    })
+);
 
 // Gzip compression
 app.use(compression());
 
 // Rate limiting
+// NOTE: In production (Render) all requests arrive via a proxy, so the real
+// client IP is only available in X-Forwarded-For. Without trusting the proxy,
+// express-rate-limit treats every visitor as the same IP and the limiter is
+// exhausted by normal usage -> the API returns 429 and images/videos break.
+app.set("trust proxy", 1);
+
 const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
+    max: Number(process.env.RATE_LIMIT_MAX) || 500, // per real client IP
+    skip: (req) => req.path?.includes("/events"), // long-lived SSE connections
     message: { success: false, message: "Too many requests, please try again later." },
     standardHeaders: true,
     legacyHeaders: false,

@@ -74,9 +74,7 @@ const VideoPlayer = ({
     const [captionsOn, setCaptionsOn] =
         useState(false);
 
-    const [autoplayNext, setAutoplayNext] =
-        useState(true);
-
+  
     const [playbackSpeed, setPlaybackSpeed] =
         useState(1);
 
@@ -243,7 +241,7 @@ const VideoPlayer = ({
                     await vid.requestPictureInPicture();
                 }
             } catch (err) {
-                
+
             }
         }, []);
 
@@ -305,7 +303,7 @@ const VideoPlayer = ({
         setShowReplay(false);
 
         vid.play().catch((err) => {
-            
+
         });
     }, []);
 
@@ -332,45 +330,8 @@ const VideoPlayer = ({
     const handleEnded = useCallback(() => {
         setIsPlaying(false);
 
-        /*
-         * If there is another video AND
-         * autoplay is enabled:
-         *
-         * Move to next video.
-         */
-        if (
-            hasNext &&
-            autoplayNext &&
-            onNext
-        ) {
-            handleNext();
-            return;
-        }
-
-        /*
-         * If there is no next video:
-         *
-         * Show Replay.
-         */
-        if (!hasNext) {
-            setShowReplay(true);
-            return;
-        }
-
-        /*
-         * There is a next video,
-         * but autoplay is disabled.
-         *
-         * Show Replay so the user can
-         * replay the current video.
-         */
         setShowReplay(true);
-    }, [
-        hasNext,
-        autoplayNext,
-        onNext,
-        handleNext,
-    ]);
+    }, []);
 
     // ==========================================
     // Keyboard shortcuts
@@ -617,7 +578,7 @@ const VideoPlayer = ({
                 setBufferedPercent(
                     (end /
                         vid.duration) *
-                        100
+                    100
                 );
             }
         }, []);
@@ -687,11 +648,11 @@ const VideoPlayer = ({
 
         return h > 0
             ? `${h}:${m
-                  .toString()
-                  .padStart(
-                      2,
-                      "0"
-                  )}:${s}`
+                .toString()
+                .padStart(
+                    2,
+                    "0"
+                )}:${s}`
             : `${m}:${s}`;
     };
 
@@ -727,6 +688,7 @@ const VideoPlayer = ({
                     cursor-pointer
                 "
                 onClick={togglePlay}
+                onEnded={handleEnded}
                 onPlay={() => {
                     setIsPlaying(true);
                     setShowReplay(false);
@@ -734,7 +696,7 @@ const VideoPlayer = ({
                 onPause={() => {
                     setIsPlaying(false);
                 }}
-                onEnded={handleEnded}
+
                 onWaiting={() => {
                     setIsBuffering(true);
                 }}
@@ -772,7 +734,7 @@ const VideoPlayer = ({
                         setProgress(
                             (vid.currentTime /
                                 vid.duration) *
-                                100
+                            100
                         );
                     }
                 }}
@@ -800,7 +762,7 @@ const VideoPlayer = ({
                     setProgress(
                         (vid.currentTime /
                             vid.duration) *
-                            100
+                        100
                     );
                 }}
             />
@@ -899,16 +861,15 @@ const VideoPlayer = ({
                         text-white
                         transition-all
                         duration-300
-                        ${
-                            flashIcon
-                                ? "opacity-100 scale-100"
-                                : "opacity-0 scale-75"
+                        ${flashIcon
+                            ? "opacity-100 scale-100"
+                            : "opacity-0 scale-75"
                         }
                     `}
                 >
                     {flashIcon &&
                         flashLabel[
-                            flashIcon
+                        flashIcon
                         ]}
                 </div>
 
@@ -937,10 +898,9 @@ const VideoPlayer = ({
                     transition-all
                     duration-300
                     ease-out
-                    ${
-                        isPlaying
-                            ? "opacity-100 translate-y-0"
-                            : "opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0"
+                    ${isPlaying
+                        ? "opacity-100 translate-y-0"
+                        : "opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0"
                     }
                 `}
             >
@@ -1106,7 +1066,7 @@ const VideoPlayer = ({
                                 title="Mute (M)"
                             >
                                 {isMuted ||
-                                volume === 0 ? (
+                                    volume === 0 ? (
                                     <VolumeX
                                         size={18}
                                     />
@@ -1161,7 +1121,7 @@ const VideoPlayer = ({
 
                                             setIsMuted(
                                                 vol ===
-                                                    0
+                                                0
                                             );
                                         }
                                     }}
@@ -1184,12 +1144,11 @@ const VideoPlayer = ({
                                         pointer-events-none
                                     "
                                     style={{
-                                        width: `${
-                                            isMuted
+                                        width: `${isMuted
                                                 ? 0
                                                 : volume *
-                                                  100
-                                        }%`,
+                                                100
+                                            }%`,
                                     }}
                                 />
 
@@ -1226,64 +1185,6 @@ const VideoPlayer = ({
                         gap-3
                     ">
 
-                        {/* Autoplay */}
-
-                        {hasNext && (
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    setAutoplayNext(
-                                        (v) =>
-                                            !v
-                                    )
-                                }
-                                className={`
-                                    cursor-pointer
-                                    flex
-                                    shrink-0
-                                    items-center
-                                    w-9
-                                    h-5
-                                    rounded-full
-                                    transition
-                                    duration-200
-                                    relative
-                                    ${
-                                        autoplayNext
-                                            ? "bg-white"
-                                            : "bg-white/25"
-                                    }
-                                `}
-                                title="Autoplay next video"
-                            >
-
-                                <span
-                                    className={`
-                                        absolute
-                                        top-0.5
-                                        w-4
-                                        h-4
-                                        rounded-full
-                                        flex
-                                        items-center
-                                        justify-center
-                                        transition-all
-                                        duration-200
-                                        ${
-                                            autoplayNext
-                                                ? "left-4 bg-black text-white"
-                                                : "left-0.5 bg-white text-black"
-                                        }
-                                    `}
-                                >
-                                    <Play
-                                        size={9}
-                                        fill="currentColor"
-                                    />
-                                </span>
-
-                            </button>
-                        )}
 
 
                         {/* Speed */}
@@ -1393,11 +1294,10 @@ const VideoPlayer = ({
                                                     text-sm
                                                     px-3
                                                     py-1.5
-                                                    ${
-                                                        speed ===
+                                                    ${speed ===
                                                         playbackSpeed
-                                                            ? "text-pink-400 font-medium"
-                                                            : "text-white hover:bg-white/10"
+                                                        ? "text-pink-400 font-medium"
+                                                        : "text-white hover:bg-white/10"
                                                     }
                                                 `}
                                             >

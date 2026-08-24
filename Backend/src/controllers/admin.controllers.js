@@ -6,6 +6,9 @@ import { User } from "../models/users.models.js";
 import { Video } from "../models/video.models.js";
 import { Comment } from "../models/comment.models.js";
 import { Like } from "../models/like.models.js";
+import { Subscription } from "../models/subscription.models.js";
+import { PlayList } from "../models/playlist.models.js";
+import { Tweet } from "../models/tweet.models.js";
 
 // ==========================================
 // Admin Overview
@@ -163,20 +166,106 @@ const deleteUser = asyncHandler(async (req, res) => {
         throw new APIError(403, "You cannot delete your own account");
     }
 
+    // ==========================================
+    // Collect everything owned by this user
+    // ==========================================
+
+    // 1. All videos the user uploaded
     const userVideos = await Video.find({ owner: userId }).select("_id");
     const videoIds = userVideos.map((v) => v._id);
 
-    await Promise.all([
-        Comment.deleteMany({ video: { $in: videoIds } }),
-        Comment.deleteMany({ owner: userId }),
-        Like.deleteMany({ video: { $in: videoIds } }),
-        Like.deleteMany({ comment: { $in: await Comment.find({ owner: userId }).select("_id") } }),
-        Video.deleteMany({ owner: userId }),
-        User.findByIdAndDelete(userId),
-    ]);
+    // 2. All comments the user WROTE (on anyone's videos)
+    const userComments = await Comment.find({ owner: userId }).select("_id");
+
+    // 3. All comments posted ON the user's videos
+    const commentIdsOnHisVideos = await Comment.distinct("_id", {
+        video: { $in: videoIds },
+    });
+
+    const allCommentIds = [
+        ...new Set([...userComments.map((c) => c._id), ...commentIdsOnHisVideos]),
+    ];
+
+    // ==========================================
+    // Cascade-delete in dependency order
+    // ==========================================
+
+    // A. Likes — every like that touches this user:
+    //    • likes the user GAVE (videos / comments / tweets)
+    //    • likes ON the user's videos
+    //    • likes ON comments written by the user
+    //    • likes ON comments living on the user's videos
+    await Like.deleteMany({
+        $or: [
+            { likedBy: userId },
+            { video: { $in: videoIds } },
+            { comment: { $in: allCommentIds } },
+        ],
+    });
+
+    // B. Comments — both authored by the user and posted on his videos
+    await Comment.deleteMany({
+        $or: [
+            { owner: userId },
+            { video: { $in: videoIds } },
+        ],
+    });
+
+    // C. Subscriptions in BOTH directions:
+    //    • channels this user subscribed to
+    //    • subscribers of this user's channel
+    //      (removes him from their "recent subscribers" lists)
+    await Subscription.deleteMany({
+        $or: [{ channel: userId }, { subscriber: userId }],
+    });
+
+    // D. Scrub deleted video references from OTHER users' documents
+    if (videoIds.length > 0) {
+        // watch history & watch later entries pointing at his videos
+        await User.updateMany(
+            { _id: { $ne: user._id } },
+            {
+                $pull: {
+                    watchHistory: { video: { $in: videoIds } },
+                    watchLater: { $in: videoIds },
+                },
+            }
+        );
+
+        // remove his videos from other users' playlists
+        await PlayList.updateMany(
+            { createdBy: { $ne: user._id } },
+            { $pull: { videos: { $in: videoIds } } }
+        );
+    }
+
+    // E. Playlists owned by the user
+    await PlayList.deleteMany({ createdBy: userId });
+
+    // F. Tweets authored by the user + likes on them
+    const userTweetIds = await Tweet.distinct("_id", { owner: userId });
+    if (userTweetIds.length > 0) {
+        await Like.deleteMany({ tweet: { $in: userTweetIds } });
+        await Tweet.deleteMany({ owner: userId });
+    }
+
+    // G. The user's videos themselves
+    await Video.deleteMany({ owner: userId });
+
+    // H. Finally, delete the user account
+    await User.findByIdAndDelete(userId);
 
     return res.status(200).json(
-        new ApiResponse(200, null, "User deleted successfully")
+        new ApiResponse(
+            200,
+            {
+                deletedUserId: userId,
+                deletedVideos: videoIds.length,
+                deletedComments: allCommentIds.length,
+                deletedSubscriptions: true,
+            },
+            "User and all associated data deleted successfully"
+        )
     );
 });
 

@@ -106,14 +106,14 @@ const Profile = () => {
                 </header>
 
                 <aside
-                    className={`fixed left-0 top-16 bottom-0 z-40 transition-all duration-300 ${isSidebarOpen ? "w-50" : "w-14 sm:w-20"
+                    className={`fixed left-0 top-16 bottom-0 z-40 max-[750px]:z-[9999]! transition-all duration-300 ${isSidebarOpen ? "w-50" : "w-14 sm:w-20"
                         }`}
                 >
-                    <Sidebar isSidebarOpen={isSidebarOpen} />
+                    <Sidebar isSidebarOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
                 </aside>
 
                 <main
-                    className={`pt-16 transition-all duration-300 ${isSidebarOpen ? "pl-50" : "pl-14 sm:pl-20"
+                    className={`pt-16 transition-all duration-300 ${isSidebarOpen ? 'pl-14 sm:pl-20 min-[750px]:pl-50!' : 'pl-14 sm:pl-20'
                         }`}
                 >
                     <ProfileSkeleton />
@@ -138,13 +138,13 @@ const Profile = () => {
                     left-0
                     top-16
                     bottom-0
-                    z-40
+                    z-40 max-[750px]:z-[9999]!
                     transition-all
                     duration-300
                     ${isSidebarOpen ? "w-50" : "w-14 sm:w-20"}
                 `}
                 >
-                    <Sidebar isSidebarOpen={isSidebarOpen} />
+                    <Sidebar isSidebarOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
                 </aside>
                 {/* Main */}
                 <main
@@ -156,7 +156,7 @@ const Profile = () => {
                     overflow-y-auto
                     transition-all
                     duration-300
-                    ${isSidebarOpen ? "left-50" : "left-14 sm:left-20"}
+                    left-14 sm:left-20 ${isSidebarOpen ? "min-[750px]:left-50!" : ""}
                 `}
                 >
                     <div className="flex flex-col items-center justify-center h-full">
@@ -308,15 +308,15 @@ const Profile = () => {
 
             {/* ================= SIDEBAR ================= */}
             <aside
-                className={`fixed left-0 top-16 bottom-0 z-40 transition-all duration-300 ${isSidebarOpen ? "w-50" : "w-14 sm:w-20"
+                className={`fixed left-0 top-16 bottom-0 z-40 max-[750px]:z-[9999]! transition-all duration-300 ${isSidebarOpen ? "w-50" : "w-14 sm:w-20"
                     }`}
             >
-                <Sidebar isSidebarOpen={isSidebarOpen} />
+                <Sidebar isSidebarOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
             </aside>
 
             {/* ================= MAIN ================= */}
             <main
-                className={`pt-16 h-screen transition-all duration-300 ${isSidebarOpen ? "pl-50" : "pl-14 sm:pl-20"
+                className={`pt-16 h-screen transition-all duration-300 ${isSidebarOpen ? 'pl-14 sm:pl-20 min-[750px]:pl-50!' : 'pl-14 sm:pl-20'
                     }`}
             >
                 <div className="h-full max-w-7xl mx-auto flex flex-col">

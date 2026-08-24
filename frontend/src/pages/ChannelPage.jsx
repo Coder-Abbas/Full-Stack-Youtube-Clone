@@ -20,7 +20,7 @@ import { useResponsiveSidebar } from "../hooks/useResponsiveSidebar";
 
 const ChannelPage = () => {
     const { username } = useParams();
-    const { isSidebarOpen, toggleSidebar, getSidebarWidthClass, getMainLeftClass, getSidebarAdditionalClass } = useResponsiveSidebar(true);
+    const { isSidebarOpen, toggleSidebar, closeSidebar, getSidebarWidthClass, getMainLeftClass, getSidebarAdditionalClass } = useResponsiveSidebar(true);
     const [activeTab, setActiveTab] = useState("videos");
     const [searchOpen, setSearchOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
@@ -156,12 +156,12 @@ const ChannelPage = () => {
                 </header>
                 <aside
                     className={`
-                        fixed left-0 top-16 bottom-0 z-40 transition-all duration-300 ${getSidebarWidthClass(isSidebarOpen)}
+                        fixed left-0 top-16 bottom-0 z-40 max-[750px]:z-[9999]! transition-all duration-300 ${getSidebarWidthClass(isSidebarOpen)}
                         ${getSidebarAdditionalClass(isSidebarOpen)}
                         overflow-hidden
                     `}
                 >
-                    <Sidebar isSidebarOpen={isSidebarOpen} />
+                    <Sidebar isSidebarOpen={isSidebarOpen} onClose={closeSidebar} />
                 </aside>
                 <main
                     className={`absolute top-16 bottom-0 right-0 transition-all duration-300 ${getMainLeftClass(isSidebarOpen)}`}
@@ -181,12 +181,12 @@ const ChannelPage = () => {
                 </header>
                 <aside
                     className={`
-                        fixed left-0 top-16 bottom-0 z-40 transition-all duration-300 ${getSidebarWidthClass(isSidebarOpen)}
+                        fixed left-0 top-16 bottom-0 z-40 max-[750px]:z-[9999]! transition-all duration-300 ${getSidebarWidthClass(isSidebarOpen)}
                         ${getSidebarAdditionalClass(isSidebarOpen)}
                         overflow-hidden
                     `}
                 >
-                    <Sidebar isSidebarOpen={isSidebarOpen} />
+                    <Sidebar isSidebarOpen={isSidebarOpen} onClose={closeSidebar} />
                 </aside>
                 <main
                     className={`absolute top-16 bottom-0 right-0 transition-all duration-300 ${getMainLeftClass(isSidebarOpen)}`}
@@ -209,12 +209,12 @@ const ChannelPage = () => {
             {/* ================= SIDEBAR ================= */}
             <aside
                 className={`
-                    fixed left-0 top-16 bottom-0 z-40 transition-all duration-300 ${getSidebarWidthClass(isSidebarOpen)}
+                    fixed left-0 top-16 bottom-0 z-40 max-[750px]:z-[9999]! transition-all duration-300 ${getSidebarWidthClass(isSidebarOpen)}
                     ${getSidebarAdditionalClass(isSidebarOpen)}
                     overflow-hidden
                 `}
             >
-                <Sidebar isSidebarOpen={isSidebarOpen} />
+                <Sidebar isSidebarOpen={isSidebarOpen} onClose={closeSidebar} />
             </aside>
 
             {/* ================= MAIN ================= */}

@@ -130,20 +130,58 @@ const getRecentSubscribers = asyncHandler(async (req, res, next) => {
         return next(new APIError("Invalid user ID", 400));
     }
 
-    const subscribers = await Subscription.find({
-        channel: userId
-    })
-        .sort({ createdAt: -1 })
-        .limit(10)
-        .populate(
-            "subscriber",
-            "username fullName avatar"
-        );
+    // Use aggregation with $lookup into the users collection so that
+    // subscribers whose accounts have been deleted are automatically
+    // filtered out (orphaned subscription docs are skipped) and only
+    // subscribers that still exist in the DB are returned.
+    const subscribers = await Subscription.aggregate([
+        {
+            $match: {
+                channel: new mongoose.Types.ObjectId(userId),
+            },
+        },
+        { $sort: { createdAt: -1 } },
+        { $limit: 10 },
+        {
+            $lookup: {
+                from: "users",
+                localField: "subscriber",
+                foreignField: "_id",
+                as: "subscriberDoc",
+            },
+        },
+        { $unwind: "$subscriberDoc" },
+        {
+            $addFields: {
+                "subscriber.username": "$subscriberDoc.username",
+                "subscriber.fullName": "$subscriberDoc.fullName",
+                "subscriber.avatar": "$subscriberDoc.avatar",
+            },
+        },
+        {
+            $project: {
+                _id: 1,
+                createdAt: 1,
+                updatedAt: 1,
+                subscriber: {
+                    _id: 1,
+                    username: 1,
+                    fullName: 1,
+                    avatar: 1,
+                },
+            },
+        },
+    ]);
+
+    // Correct subscriber count from live subscriptions
+    const totalSubscribers = await Subscription.countDocuments({
+        channel: userId,
+    });
 
     return res.status(200).json(
         new ApiResponse(
             200,
-            subscribers,
+            { subscribers, totalSubscribers },
             "Recent subscribers fetched successfully"
         )
     );

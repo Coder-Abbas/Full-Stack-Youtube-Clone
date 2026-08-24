@@ -17,6 +17,7 @@ const Home = () => {
     const {
         isSidebarOpen,
         toggleSidebar,
+        closeSidebar,
         getSidebarWidthClass,
         getMainLeftClass,
         getSidebarAdditionalClass,
@@ -177,7 +178,7 @@ const Home = () => {
                     left-0
                     top-16
                     bottom-0
-                    z-40
+                    z-40 max-[750px]:z-[9999]!
                     transition-all
                     duration-300
                     ${getSidebarWidthClass(isSidebarOpen)}
@@ -188,6 +189,7 @@ const Home = () => {
 
                 <Sidebar
                     isSidebarOpen={isSidebarOpen}
+                    onClose={closeSidebar}
                 />
 
             </aside>

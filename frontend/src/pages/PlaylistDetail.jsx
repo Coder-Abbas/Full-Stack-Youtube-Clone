@@ -94,17 +94,17 @@ const PlaylistDetail = () => {
 
             <aside
                 className={`
-                    fixed left-0 top-16 bottom-0 z-40 transition-all duration-300
+                    fixed left-0 top-16 bottom-0 z-40 max-[750px]:z-[9999]! transition-all duration-300
                     ${isSidebarOpen ? "w-50" : "w-14 sm:w-20"}
                 `}
             >
-                <Sidebar isSidebarOpen={isSidebarOpen} />
+                <Sidebar isSidebarOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
             </aside>
 
             <main
                 className={`
                     absolute top-16 bottom-0 right-0 overflow-y-auto transition-all duration-300
-                    ${isSidebarOpen ? "left-50" : "left-14 sm:left-20"}
+                    left-14 sm:left-20 ${isSidebarOpen ? "min-[750px]:left-50!" : ""}
                 `}
             >
                 <div className="max-w-[1500px] mx-auto px-3 py-4 sm:px-4 sm:py-6">

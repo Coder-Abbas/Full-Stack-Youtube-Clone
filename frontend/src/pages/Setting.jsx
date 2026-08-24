@@ -575,7 +575,7 @@ const Setting = () => {
                         left-0
                         top-16
                         bottom-0
-                        z-40
+                        z-40 max-[750px]:z-[9999]!
                         transition-all
                         duration-300
                         ${
@@ -588,7 +588,7 @@ const Setting = () => {
                     <Sidebar
                         isSidebarOpen={
                             isSidebarOpen
-                        }
+                        } onClose={() => setIsSidebarOpen(false)}
                     />
                 </aside>
 
@@ -602,9 +602,7 @@ const Setting = () => {
                         transition-all
                         duration-300
                         ${
-                            isSidebarOpen
-                                ? "left-50"
-                                : "left-14 sm:left-20"
+                            `left-14 sm:left-20 ${isSidebarOpen ? "min-[750px]:left-50!" : ""}`
                             }
                     `}
                 >
@@ -670,7 +668,7 @@ const Setting = () => {
                     left-0
                     top-16
                     bottom-0
-                    z-40
+                    z-40 max-[750px]:z-[9999]!
                     transition-all
                     duration-300
                     ${
@@ -683,7 +681,7 @@ const Setting = () => {
                 <Sidebar
                     isSidebarOpen={
                         isSidebarOpen
-                    }
+                    } onClose={() => setIsSidebarOpen(false)}
                 />
             </aside>
 
@@ -702,9 +700,7 @@ const Setting = () => {
                     transition-all
                     duration-300
                     ${
-                        isSidebarOpen
-                            ? "left-50"
-                            : "left-20"
+                        `left-20 ${isSidebarOpen ? "min-[750px]:left-50!" : ""}`
                     }
                 `}
             >

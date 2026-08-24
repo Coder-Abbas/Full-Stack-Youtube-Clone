@@ -70,7 +70,7 @@ const AdminSidebar = ({ isOpen, onClose }) => {
                     left-0
                     top-16
                     bottom-0
-                    z-40
+                    z-40 max-[750px]:z-[9999]!
                     bg-white
                     border-r
                     border-gray-200

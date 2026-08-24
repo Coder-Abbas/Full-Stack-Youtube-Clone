@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, useLocation } from "react-router-dom";
 import {
     Home,
@@ -16,10 +17,33 @@ import {
 
 import useAuthStore from "../store/authStore";
 
-const Sidebar = ({ isSidebarOpen }) => {
+const Sidebar = ({ isSidebarOpen, onClose }) => {
     const location = useLocation();
 
     const { authUser, isCheckingAuth } = useAuthStore();
+
+    // Mobile detection: on small screens the sidebar overlays the content,
+    // so it needs a backdrop that closes it when the user clicks outside.
+    // Threshold matches the layout breakpoint used across the app (750px).
+    const [isMobile, setIsMobile] = useState(
+        typeof window !== "undefined" ? window.innerWidth < 750 : false
+    );
+
+    useEffect(() => {
+        const updateIsMobile = () => setIsMobile(window.innerWidth < 750);
+        updateIsMobile();
+        window.addEventListener("resize", updateIsMobile);
+        return () => window.removeEventListener("resize", updateIsMobile);
+    }, []);
+
+    // Close the overlay automatically when navigating to another page,
+    // otherwise it stays open covering the new page on small screens.
+    useEffect(() => {
+        if (isMobile && isSidebarOpen && typeof onClose === "function") {
+            onClose();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [location.pathname]);
 
     const authenticatedMenuItems = [
         {
@@ -119,9 +143,29 @@ const Sidebar = ({ isSidebarOpen }) => {
         );
     };
 
+    // On mobile the sidebar OVERLAYS the content (higher z-index than the
+    // page). A translucent backdrop sits behind it; clicking the backdrop
+    // closes the sidebar.
+    const showMobileBackdrop = isMobile && isSidebarOpen && typeof onClose === "function";
+
     return (
-        <aside
-            className={`
+        <>
+            {showMobileBackdrop &&
+                createPortal(
+                    <div
+                        onClick={onClose}
+                        aria-hidden="true"
+                        className="
+                            fixed inset-0 z-[38]
+                            bg-black/50
+                            cursor-pointer
+                        "
+                    />,
+                    document.body
+                )}
+
+            <aside
+                className={`
                 h-full
                 flex shrink-0
                 bg-white
@@ -279,6 +323,7 @@ const Sidebar = ({ isSidebarOpen }) => {
 
             </div>
         </aside>
+        </>
     );
 };
 

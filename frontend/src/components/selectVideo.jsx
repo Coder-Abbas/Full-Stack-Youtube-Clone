@@ -356,24 +356,8 @@ const SelectVideo = () => {
 
 
     // ==========================================
-    // Next video (keyboard "N" + auto-advance on end)
+    // Next video
     // ==========================================
-
-    const openSelectedVideo = useVideoStore((state) => state.openSelectedVideo);
-
-    const handleNextVideo = () => {
-        if (recommendedVideos.length === 0) return;
-
-        const next = recommendedVideos[0];
-
-        openSelectedVideo(next._id);
-        sessionStorage.setItem("selectedVideoId", next._id);
-
-        navigate(`/watch/${next._id}`);
-
-        
-    };
-
 
     // ==========================================
     // Loading
@@ -542,7 +526,6 @@ const SelectVideo = () => {
         document.body.removeChild(link);
     };
 
-
     return (
 
         <div className="min-h-screen bg-[#f9f9f9]">
@@ -571,7 +554,6 @@ const SelectVideo = () => {
                                 <VideoPlayer
                                     videoFile={selectedVideo.videoFile}
                                     thumbnail={selectedVideo.thumbnail}
-                                    onNext={handleNextVideo}
                                     hasNext={recommendedVideos.length > 0}
                                 />
 

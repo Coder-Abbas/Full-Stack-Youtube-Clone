@@ -259,37 +259,62 @@ const getLikeVideos = asyncHandler(async (req, res) => {
     //1. get the user id
     const userId = req.user._id;
 
-    //2. get the liked videos
-    const likedVideos = await Like.find(
+    //2. get ONLY the user's VIDEO likes via aggregation.
+    //   Comment likes / tweet likes have `video: null`, so filtering on
+    //   `video: { $ne: null }` excludes them — we return pure video docs.
+    const likedVideos = await Like.aggregate([
         {
-            likedBy: userId,
-        }).populate({
-            path: "video",
-            populate: {
-                path: "owner",
-                select: "username avatar fullName"
-            }
-        })
-        .sort({ createdAt: -1 })
+            $match: {
+                likedBy: new mongoose.Types.ObjectId(userId.toString()),
+                video: { $ne: null },
+            },
+        },
+        // most recently liked first
+        { $sort: { createdAt: -1 } },
+        {
+            $lookup: {
+                from: "videos",
+                localField: "video",
+                foreignField: "_id",
+                as: "video",
+                pipeline: [
+                    {
+                        // bring in the video owner's public profile
+                        $lookup: {
+                            from: "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "owner",
+                            pipeline: [
+                                {
+                                    $project: {
+                                        username: 1,
+                                        fullName: 1,
+                                        avatar: 1,
+                                    },
+                                },
+                            ],
+                        },
+                    },
+                    { $addFields: { owner: { $first: "$owner" } } },
+                ],
+            },
+        },
+        // flatten: each result becomes the video document itself
+        { $unwind: "$video" },
+        { $replaceRoot: { newRoot: "$video" } },
+    ]);
 
-
-    //validate
-    if (!likedVideos) {
-        throw new APIError(404, "No liked videos found")
-    }
-
-    if (likedVideos.length === 0) {
-        return res.status(200)
-            .json(
-                new ApiResponse(200, [], "No liked videos found")
-            )
-    }
-
-    //return response
-    return res.status(200)
-        .json(
-            new ApiResponse(200, likedVideos, "Liked videos fetched successfully")
+    //3. send response
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            likedVideos,
+            likedVideos.length > 0
+                ? "Liked videos fetched successfully"
+                : "No liked videos found"
         )
+    );
 })
 
 

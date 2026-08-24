@@ -1,7 +1,9 @@
 const asyncHandler = (requestHandler) => {
    return (req, res, next) => {
-Promise.resolve(requestHandler(req, res, next))
-        .catch((error) => next(error));
+        // `return` is essential: without it the caller gets `undefined`
+        // instead of the promise, so `await controller(...)` settles early.
+        return Promise.resolve(requestHandler(req, res, next))
+            .catch((error) => next(error));
     }
 }
 

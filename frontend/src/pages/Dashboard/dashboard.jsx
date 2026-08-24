@@ -671,12 +671,15 @@ const Dashboard = () => {
     const navigate = useNavigate();
     const openSelectedVideo = useVideoStore((state) => state.openSelectedVideo);
     const { videoPublishedVersion } = useVideoStore();
-
     const [overview, setOverview] = useState(null);
     const [topVideos, setTopVideos] = useState([]);
     const [recentVideos, setRecentVideos] = useState([]);
     const [recentSubscribers, setRecentSubscribers] = useState([]);
+    const [subscriberCount, setSubscriberCount] = useState(0);
     const [analytics, setAnalytics] = useState([]);
+    // Modal states — "View more"
+    const [isTopVideosModalOpen, setIsTopVideosModalOpen] = useState(false);
+    const [isRecentVideosModalOpen, setIsRecentVideosModalOpen] = useState(false);
 
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -712,10 +715,56 @@ const Dashboard = () => {
                     axiosInstance.get("/dashboard/analytics"),
                 ]);
 
-            setOverview(overviewRes.data.data);
-            setTopVideos(topRes.data.data || []);
-            setRecentVideos(recentRes.data.data || []);
-            setRecentSubscribers(subsRes.data.data || []);
+                        setOverview(overviewRes.data.data);
+
+            const fixVideo = (v) => {
+                if (!v) return v;
+                return {
+                    ...v,
+                    thumbnail: toHttps(v.thumbnail),
+                    videoFile: toHttps(v.videoFile),
+                    owner: v.owner
+                        ? {
+                              ...v.owner,
+                              avatar: toHttps(v.owner.avatar),
+                          }
+                        : v.owner,
+                };
+            };
+
+            setTopVideos((topRes.data.data || []).map(fixVideo));
+            setRecentVideos((recentRes.data.data || []).map(fixVideo));
+
+            // Handle both shapes the backend may return:
+            //   - newer shape: { subscribers, totalSubscribers }
+            //   - older shape : [ {...sub, subscriber: {...}} ]
+            const subsData = subsRes.data.data;
+            let subsList = [];
+            let subsCount = null;
+            if (Array.isArray(subsData)) {
+                subsList = subsData;
+            } else if (subsData && typeof subsData === "object") {
+                subsList = subsData.subscribers || [];
+                subsCount = subsData.totalSubscribers ?? null;
+            }
+
+            const fixSub = (s) => ({
+                ...s,
+                avatar: toHttps(s.avatar),
+                subscriber: s.subscriber
+                    ? { ...s.subscriber, avatar: toHttps(s.subscriber.avatar) }
+                    : s.subscriber,
+            });
+
+            setRecentSubscribers(subsList.map(fixSub));
+            // If the backend returned a live total count, trust it —
+            // otherwise fall back to the visible list length.
+            if (subsCount !== null && subsCount !== undefined) {
+                setSubscriberCount(subsCount);
+            } else {
+                setSubscriberCount(subsList.length);
+            }
+
             setAnalytics(analyticsRes.data.data || []);
         } catch (err) {
             setError(err.response?.data?.message || "Failed to load dashboard data");
@@ -985,16 +1034,16 @@ const Dashboard = () => {
             </header>
 
             <aside
-                className={`fixed left-0 top-16 bottom-0 z-40 transition-all duration-300 ${
+                className={`fixed left-0 top-16 bottom-0 z-40 max-[750px]:z-[9999]! transition-all duration-300 ${
                     isSidebarOpen ? "w-50" : "w-14 sm:w-20"
                 }`}
             >
-                <Sidebar isSidebarOpen={isSidebarOpen} />
+                <Sidebar isSidebarOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
             </aside>
 
             <main
                 className={`absolute top-16 bottom-0 right-0 overflow-y-auto transition-all duration-300 ${
-                    isSidebarOpen ? "left-50" : "left-14 sm:left-20"
+                    `left-14 sm:left-20 ${isSidebarOpen ? "min-[750px]:left-50!" : ""}`
                 }`}
             >
                 <div className="p-6">
