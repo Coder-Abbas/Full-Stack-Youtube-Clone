@@ -4,7 +4,9 @@ import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import compression from "compression";
 import rateLimit from "express-rate-limit";
+import path from "path";
 
+const _dirname = path.resolve();
 const app = express();
 
 // Security headers
@@ -40,8 +42,8 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
 
-// Static files
-app.use(express.static("public"));
+// Public static files served from the project's /public folder
+app.use(express.static(path.join(_dirname, "public")));
 
 // Import routes
 import userRoutes from "./routes/user.routes.js";
@@ -66,6 +68,17 @@ app.use("/api/v1/playlists", playlistRouter);
 app.use("/api/v1/events", realtimeRouter);
 app.use("/api/v1/dashboard", dashboardRouter);
 app.use("/api/v1/admin", adminRouter);
+
+// Serve the built React frontend (SPA fallback).
+// IMPORTANT: This must run AFTER the /api routes, and it must NOT catch
+// unmatched /api/* requests (let the error handler return JSON 404 instead).
+app.use(express.static(path.join(_dirname, "frontend", "dist")));
+app.use((req, res, next) => {
+    if (req.method !== "GET" || req.path.startsWith("/api/")) {
+        return next();
+    }
+    return res.sendFile(path.join(_dirname, "frontend", "dist", "index.html"));
+});
 
 // Global error handler
 app.use((err, req, res, next) => {

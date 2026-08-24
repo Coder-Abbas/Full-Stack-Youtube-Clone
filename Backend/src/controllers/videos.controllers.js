@@ -81,8 +81,8 @@ const uploadvideo = asyncHandler(async (req, res) => {
 
     //7. get the video information
     const videoInformation = await Video.create({
-        videoFile: video.url,
-        thumbnail: thumbnail.url,
+        videoFile: video.secure_url || video.url,
+        thumbnail: thumbnail.secure_url || thumbnail.url,
         title,
         description,
         duration: video.duration,
@@ -673,7 +673,7 @@ const updateVideo = asyncHandler(async (req, res) => {
         if (!thumbnailCloudinary) {
             throw new APIError(500, "Failed to upload thumbnail")
         }
-        video.thumbnail = thumbnailCloudinary.url;
+        video.thumbnail = thumbnailCloudinary.secure_url || thumbnailCloudinary.url;
     }
 
     //update the video file if provided
@@ -683,7 +683,7 @@ const updateVideo = asyncHandler(async (req, res) => {
         if (!videoFileCloudinary) {
             throw new APIError(500, "Failed to upload video file")
         }
-        video.videoFile = videoFileCloudinary.url;
+        video.videoFile = videoFileCloudinary.secure_url || videoFileCloudinary.url;
         // Update duration because video changed
         video.duration = videoFileCloudinary.duration;
     }
