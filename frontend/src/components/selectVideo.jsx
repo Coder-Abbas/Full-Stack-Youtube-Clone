@@ -21,7 +21,7 @@ import useVideoStore from "../store/videoStore";
 import useAuthStore from "../store/authStore";
 import Navbar from "../components/navbar/navbar";
 
-import WatchPageSkeleton from "../components/home/watchPageSkelton";
+import WatchPageSkeleton from "../components/Home/watchPageSkelton";
 import VideoPlayer from "../components/Home/videoPlayer";
 import RecommendedVideoCard from "../components/Home/RecomendedVideoCard";
 import SaveToPlaylist from "../components/playlist/SaveToPlaylist";
