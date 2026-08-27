@@ -349,4 +349,4 @@ If you find this project useful or interesting, consider giving the repository a
 
 ## 📄 License
 
-made with **❤️ by Muhammad Abbas Computer Science Student at Quaid e Azam University Islamaba**.
+made with **❤️ by Muhammad Abbas Computer Science Student at Quaid e Azam University Islamabad**.
